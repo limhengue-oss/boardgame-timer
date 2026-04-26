@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Board Game Timer</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Sarabun:wght@300;400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root { --spd: 0.55s; }
+
+body {
+  background: #0f0f13;
+  color: #fff;
+  font-family: 'Sarabun', sans-serif;
+  min-height: 100vh;
+}
+
+/* BG blob */
+#bg-blob {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  opacity: 0; transition: opacity var(--spd) ease, background var(--spd) ease;
+}
+#bg-blob.on { opacity: 1; }
+.wrap { position: relative; z-index: 1; }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+.hidden { display: none !important; }
+
+/* ── LOADING ── */
+#screen-loading {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; gap: 16px;
+}
+.spinner {
+  width: 32px; height: 32px;
+  border: 2px solid rgba(255,255,255,0.08); border-top-color: rgba(255,255,255,0.6);
+  border-radius: 50%; animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-txt { font-size: 11px; letter-spacing: 4px; color: rgba(255,255,255,0.22); text-transform: uppercase; }
+
+/* ── HOME ── */
+#screen-home {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 40px 24px;
+}
+.home-eye { font-size: 11px; letter-spacing: 6px; color: rgba(255,255,255,0.22); margin-bottom: 6px; text-transform: uppercase; }
+.home-title {
+  font-family: 'Bebas Neue', sans-serif; font-size: 108px; line-height: 0.88;
+  letter-spacing: 8px; text-align: center; margin-bottom: 10px;
+  background: linear-gradient(160deg,#fff 40%,rgba(255,255,255,0.35));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.home-sub { font-size: 11px; letter-spacing: 3px; color: rgba(255,255,255,0.22); margin-bottom: 52px; text-transform: uppercase; }
+.home-btn {
+  width: 100%; max-width: 340px; padding: 17px; border-radius: 4px; border: none;
+  font-family: 'Sarabun', sans-serif; font-size: 16px; font-weight: 800;
+  cursor: pointer; transition: all .15s; margin-bottom: 10px; letter-spacing: 0.5px;
+}
+.btn-white { background: #fff; color: #000; }
+.btn-white:hover { background: #e8e8e8; }
+.divider { color: rgba(255,255,255,0.18); font-size: 10px; letter-spacing: 4px; margin: 6px 0; }
+.join-row { display: flex; gap: 8px; width: 100%; max-width: 340px; margin-top: 6px; }
+.join-input {
+  flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  color: #fff; font-family: 'Bebas Neue', sans-serif; font-size: 26px;
+  letter-spacing: 6px; text-align: center; border-radius: 4px; padding: 12px; outline: none; text-transform: uppercase;
+}
+.join-input:focus { border-color: rgba(255,255,255,0.3); }
+.join-input::placeholder { font-size: 12px; letter-spacing: 2px; color: rgba(255,255,255,0.2); font-family: 'Sarabun', sans-serif; }
+.join-btn {
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.5); font-family: 'Sarabun', sans-serif; font-size: 13px; font-weight: 700;
+  border-radius: 4px; padding: 12px 18px; cursor: pointer; transition: all .15s;
+}
+.join-btn:hover { border-color: rgba(255,255,255,0.35); color: #fff; }
+
+/* ── SETUP ── */
+#screen-setup { padding-bottom: 60px; }
+.setup-hdr { text-align: center; padding: 48px 24px 20px; }
+.setup-title { font-family: 'Bebas Neue', sans-serif; font-size: 58px; letter-spacing: 5px; }
+.setup-sub { font-size: 10px; color: rgba(255,255,255,0.22); letter-spacing: 4px; margin-top: 4px; text-transform: uppercase; }
+.sec { max-width: 640px; margin: 0 auto; padding: 0 24px; }
+.sec-lbl { font-size: 10px; letter-spacing: 4px; color: rgba(255,255,255,0.28); text-transform: uppercase; margin-bottom: 12px; margin-top: 32px; font-weight: 700; }
+.count-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.count-btn {
+  width: 44px; height: 44px; border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.4);
+  border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 700;
+  font-family: 'Sarabun', sans-serif; transition: all .14s;
+}
+.count-btn.on { border-color: #fff; background: #fff; color: #000; }
+.count-btn:hover:not(.on) { border-color: rgba(255,255,255,0.3); color: #fff; }
+.mode-row { display: flex; gap: 10px; }
+.mode-btn {
+  flex: 1; padding: 16px; border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.38);
+  border-radius: 4px; cursor: pointer; font-family: 'Sarabun', sans-serif; font-size: 13px; transition: all .14s; text-align: left;
+}
+.mode-btn.on { border-color: rgba(255,255,255,0.55); background: rgba(255,255,255,0.07); color: #fff; }
+.mi { font-size: 20px; margin-bottom: 8px; display: block; }
+.mt { display: block; font-size: 15px; font-weight: 800; margin-bottom: 4px; }
+.md { display: block; font-size: 11px; color: rgba(255,255,255,0.3); line-height: 1.5; }
+.mode-btn.on .md { color: rgba(255,255,255,0.45); }
+.player-list { display: flex; flex-direction: column; gap: 8px; }
+.p-row {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+  border-left: 3px solid; border-radius: 4px; padding: 11px 14px;
+}
+.p-num { font-size: 11px; color: rgba(255,255,255,0.22); font-weight: 700; width: 18px; flex-shrink: 0; }
+.p-inp {
+  flex: 1; min-width: 0; background: transparent; border: none; outline: none;
+  color: #fff; font-family: 'Sarabun', sans-serif; font-size: 15px; font-weight: 600;
+}
+.p-inp::placeholder { color: rgba(255,255,255,0.18); }
+.cdots { display: flex; gap: 5px; flex-wrap: wrap; }
+.cdot {
+  width: 20px; height: 20px; border-radius: 50%; cursor: pointer;
+  border: 2px solid transparent; transition: transform .12s, border-color .12s; flex-shrink: 0;
+}
+.cdot:hover { transform: scale(1.2); }
+.cdot.sel { border-color: #fff; transform: scale(1.15); }
+.go-btn {
+  width: calc(100% - 48px); max-width: 592px; margin: 32px 24px 0; display: block;
+  padding: 18px; background: #fff; color: #000; border: none; border-radius: 4px;
+  font-family: 'Sarabun', sans-serif; font-size: 16px; font-weight: 800;
+  cursor: pointer; transition: all .15s; letter-spacing: 1px;
+}
+.go-btn:hover { background: #e8e8e8; }
+
+/* ── TOP BAR ── */
+.top-bar {
+  width: 100%; display: flex; justify-content: space-between; align-items: center;
+  padding: 20px 24px 0; max-width: 680px; margin: 0 auto;
+}
+.ghost-btn {
+  background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.75); padding: 8px 16px; border-radius: 4px;
+  cursor: pointer; font-family: 'Sarabun', sans-serif; font-size: 13px; font-weight: 600;
+  transition: all .15s; backdrop-filter: blur(10px);
+}
+.ghost-btn:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
+.badge {
+  background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.85); padding: 8px 16px; border-radius: 4px;
+  font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 3px;
+  backdrop-filter: blur(10px);
+}
+
+/* ── SHARE BAR ── */
+.share-bar {
+  width: calc(100% - 48px); max-width: 632px; margin: 14px auto 0;
+  background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px; padding: 12px 16px; display: flex; align-items: center;
+  gap: 12px; backdrop-filter: blur(10px);
+}
+.sb-icon { font-size: 15px; opacity: 0.5; flex-shrink: 0; }
+.sb-txt { flex: 1; min-width: 0; }
+.sb-lbl { font-size: 9px; color: rgba(255,255,255,0.28); letter-spacing: 3px; text-transform: uppercase; }
+.sb-code { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 6px; }
+.sb-url { font-size: 10px; color: rgba(255,255,255,0.28); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cp-btn {
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.13);
+  color: rgba(255,255,255,0.55); padding: 7px 14px; border-radius: 4px;
+  cursor: pointer; font-family: 'Sarabun', sans-serif; font-size: 11px; font-weight: 700;
+  transition: all .15s; flex-shrink: 0; letter-spacing: 1px;
+}
+.cp-btn:hover { color: #fff; border-color: rgba(255,255,255,0.35); }
+.cp-btn.ok { background: rgba(46,213,115,0.18); border-color: #2ed573; color: #2ed573; }
+
+/* ── ACTIVE ZONE ── */
+.az {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 28px 24px 14px; width: 100%; max-width: 680px; margin: 0 auto;
+}
+.p-name {
+  font-family: 'Bebas Neue', sans-serif; font-size: 60px; line-height: 1; letter-spacing: 3px;
+  color: #fff; margin-bottom: 4px; text-shadow: 0 2px 28px rgba(0,0,0,0.9);
+  transition: color var(--spd) ease;
+}
+.t-status {
+  font-size: 11px; letter-spacing: 4px; text-transform: uppercase; font-weight: 700;
+  color: rgba(255,255,255,0.6); margin-bottom: 26px; text-shadow: 0 1px 10px rgba(0,0,0,0.8);
+}
+
+/* Ring */
+.ring-wrap { position: relative; width: 220px; height: 220px; }
+.ring-svg { transform: rotate(-90deg); filter: drop-shadow(0 4px 32px rgba(0,0,0,0.7)); }
+.ring-bg { fill: none; stroke: rgba(0,0,0,0.4); stroke-width: 10; }
+.ring-fg { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset .95s linear, stroke .4s ease; }
+.t-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.t-big {
+  font-family: 'Bebas Neue', sans-serif; font-size: 62px; letter-spacing: -1px; line-height: 1;
+  color: #fff; text-shadow: 0 2px 24px rgba(0,0,0,0.9);
+}
+.t-sub { font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 3px; font-weight: 600; text-shadow: 0 1px 8px rgba(0,0,0,0.8); }
+
+/* Controls */
+.ctrls { display: flex; gap: 8px; margin-top: 22px; flex-wrap: wrap; justify-content: center; }
+.cb {
+  border: none; border-radius: 4px; cursor: pointer; font-family: 'Sarabun', sans-serif;
+  font-weight: 800; font-size: 14px; padding: 13px 18px; transition: all .12s; letter-spacing: 0.5px;
+}
+.cb-pause {
+  background: rgba(0,0,0,0.4); color: rgba(255,255,255,0.8);
+  border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(8px);
+}
+.cb-pause:hover { color: #fff; border-color: rgba(255,255,255,0.45); }
+.cb-end { background: rgba(255,255,255,0.95); color: #000; font-size: 15px; padding: 13px 24px; }
+.cb-end:hover { background: #fff; transform: translateY(-1px); }
+.cb-pass {
+  background: rgba(255,82,82,0.12); color: rgba(255,160,160,0.9);
+  border: 1px solid rgba(255,82,82,0.28); backdrop-filter: blur(8px);
+}
+.cb-pass:hover { background: rgba(255,82,82,0.25); border-color: rgba(255,82,82,0.6); color: #ff8080; }
+.start-btn2 {
+  background: #fff; color: #000; padding: 14px 52px; font-size: 16px;
+  border-radius: 4px; border: none; cursor: pointer;
+  font-family: 'Sarabun', sans-serif; font-weight: 800; margin-top: 26px; letter-spacing: 1px;
+}
+.start-btn2:hover { background: #e8e8e8; }
+.vol-hint { font-size: 11px; color: rgba(255,255,255,0.25); margin-top: 10px; letter-spacing: 1px; text-shadow: 0 1px 6px rgba(0,0,0,0.7); }
+
+/* Queue */
+.queue { width: 100%; max-width: 680px; margin: 0 auto; padding: 8px 24px 52px; display: flex; flex-direction: column; gap: 5px; }
+.q-lbl { font-size: 9px; letter-spacing: 4px; color: rgba(255,255,255,0.3); text-transform: uppercase; margin-bottom: 6px; font-weight: 700; }
+.q-row {
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+  border-radius: 4px; background: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.06);
+  transition: all .2s; backdrop-filter: blur(6px);
+}
+.q-row.q-next { border-color: rgba(255,255,255,0.18); background: rgba(255,255,255,0.07); }
+.q-row.q-passed { opacity: 0.32; }
+.q-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.q-name { flex: 1; font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.6); }
+.q-row.q-next .q-name { color: rgba(255,255,255,0.95); }
+.q-total { font-size: 12px; color: rgba(255,255,255,0.32); font-weight: 700; font-variant-numeric: tabular-nums; }
+.qtag { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; font-weight: 800; padding: 2px 7px; border-radius: 2px; }
+.qtag-next { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.65); }
+.qtag-pass { background: rgba(255,82,82,0.16); color: #ff8080; }
+
+/* ── ADMIN TURN ── */
+#screen-admin { display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+.admin-z {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 40px 24px 24px; width: 100%; max-width: 680px; margin: 0 auto;
+}
+.adm-eye { font-size: 10px; letter-spacing: 6px; color: rgba(255,255,255,0.3); margin-bottom: 8px; text-transform: uppercase; }
+.adm-title {
+  font-family: 'Bebas Neue', sans-serif; font-size: 78px; letter-spacing: 6px;
+  color: #fff; margin-bottom: 6px; text-align: center; line-height: 1;
+}
+.adm-sub { font-size: 13px; color: rgba(255,255,255,0.35); margin-bottom: 44px; text-align: center; }
+.adm-timer {
+  font-family: 'Bebas Neue', sans-serif; font-size: 108px; letter-spacing: -2px;
+  line-height: 1; color: #fff; margin-bottom: 6px; text-shadow: 0 4px 48px rgba(0,0,0,0.6);
+}
+.adm-timer-sub { font-size: 10px; color: rgba(255,255,255,0.25); letter-spacing: 4px; text-transform: uppercase; margin-bottom: 40px; }
+.adm-ctrls { display: flex; gap: 10px; }
+.adm-pause {
+  background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.65); font-family: 'Sarabun', sans-serif; font-weight: 700;
+  font-size: 14px; padding: 14px 24px; border-radius: 4px; cursor: pointer; transition: all .15s;
+}
+.adm-pause:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
+.adm-next {
+  background: #fff; color: #000; border: none; font-family: 'Sarabun', sans-serif;
+  font-weight: 800; font-size: 15px; padding: 14px 32px; border-radius: 4px;
+  cursor: pointer; transition: all .15s; letter-spacing: 0.5px;
+}
+.adm-next:hover { background: #e8e8e8; }
+
+/* Scoreboard */
+.scoreboard { width: 100%; max-width: 680px; margin: 0 auto; padding: 8px 24px 60px; }
+.sb-title { font-size: 9px; letter-spacing: 4px; color: rgba(255,255,255,0.25); text-transform: uppercase; font-weight: 700; margin-bottom: 10px; }
+.sc-row {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.06);
+  border-left: 3px solid; border-radius: 4px; margin-bottom: 6px; backdrop-filter: blur(4px);
+}
+.sc-rank { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: rgba(255,255,255,0.18); width: 26px; }
+.sc-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.sc-name { flex: 1; font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.85); }
+.sc-bar-wrap { width: 90px; height: 3px; background: rgba(255,255,255,0.07); border-radius: 2px; overflow: hidden; }
+.sc-bar { height: 100%; border-radius: 2px; transition: width .6s ease; }
+.sc-time { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 2px; color: rgba(255,255,255,0.7); }
+
+/* Observer */
+#screen-observer { display: flex; flex-direction: column; align-items: center; }
+.obs-badge {
+  background: rgba(255,99,72,0.12); border: 1px solid rgba(255,99,72,0.25); color: #ff6348;
+  padding: 6px 16px; border-radius: 20px; font-size: 10px; font-weight: 700;
+  letter-spacing: 3px; text-transform: uppercase; margin-top: 14px;
+}
+</style>
+</head>
+<body>
+
+<div id="bg-blob"></div>
+<div class="wrap">
+
+<!-- LOADING -->
+<div id="screen-loading">
+  <div class="spinner"></div>
+  <div class="loading-txt">Loading</div>
+</div>
+
+<!-- HOME -->
+<div id="screen-home" class="hidden">
+  <div class="home-eye">⬡ Board Game</div>
+  <div class="home-title">TIMER</div>
+  <div class="home-sub">Real-Time · Patch 1.1</div>
+  <button class="home-btn btn-white" onclick="showSetup()">🎮 สร้างเกมใหม่</button>
+  <div class="divider">— หรือ —</div>
+  <div class="join-row">
+    <input class="join-input" id="join-code-input" maxlength="6" placeholder="รหัส 6 ตัว"
+      oninput="this.value=this.value.toUpperCase()"/>
+    <button class="join-btn" onclick="joinAsObserver()">👁 เข้าดู</button>
+  </div>
+</div>
+
+<!-- SETUP -->
+<div id="screen-setup" class="hidden">
+  <div class="setup-hdr">
+    <div class="setup-title">ตั้งค่าเกม</div>
+    <div class="setup-sub">Board Game Timer · Patch 1.1</div>
+  </div>
+  <div class="sec">
+    <div class="sec-lbl">จำนวนผู้เล่น</div>
+    <div class="count-row" id="count-row"></div>
+    <div class="sec-lbl">โหมดเกม</div>
+    <div class="mode-row">
+      <button class="mode-btn on" id="mode-turn" onclick="setMode('turn')">
+        <span class="mi">🔄</span><span class="mt">Turn Mode</span>
+        <span class="md">จับเวลาแต่ละเทิร์น สะสมเวลารวมแต่ละคน</span>
+      </button>
+      <button class="mode-btn" id="mode-round" onclick="setMode('round')">
+        <span class="mi">🔃</span><span class="mt">Round Mode</span>
+        <span class="md">หมุนครบทุกคน → Admin Turn → Round ใหม่</span>
+      </button>
+    </div>
+    <div class="sec-lbl">ผู้เล่น</div>
+    <div class="player-list" id="player-list"></div>
+  </div>
+  <button class="go-btn" onclick="startGame()">เริ่มเกม →</button>
+</div>
+
+<!-- TIMER (HOST) -->
+<div id="screen-timer" class="hidden">
+  <div class="top-bar">
+    <button class="ghost-btn" onclick="confirmReset()">← รีเซ็ต</button>
+    <div class="badge" id="round-badge">TURN MODE</div>
+  </div>
+  <div id="share-bar-slot"></div>
+  <div class="az">
+    <div class="p-name" id="cur-name">—</div>
+    <div class="t-status" id="t-lbl">กดเริ่ม</div>
+    <div class="ring-wrap">
+      <svg class="ring-svg" width="220" height="220" viewBox="0 0 220 220">
+        <circle class="ring-bg" cx="110" cy="110" r="96"/>
+        <circle class="ring-fg" id="ring-fg" cx="110" cy="110" r="96"
+          stroke="rgba(255,255,255,0.85)" stroke-dasharray="603.2" stroke-dashoffset="603.2"/>
+      </svg>
+      <div class="t-center">
+        <div class="t-big" id="t-turn">00:00</div>
+        <div class="t-sub" id="t-total">รวม 00:00</div>
+      </div>
+    </div>
+    <button class="start-btn2" id="start-btn" onclick="startTimer()">▶ เริ่มเลย</button>
+    <div class="ctrls hidden" id="ctrls">
+      <button class="cb cb-pause" id="pause-btn" onclick="togglePause()">⏸ หยุด</button>
+      <button class="cb cb-end" onclick="doEndTurn()">จบเทิร์น →</button>
+      <button class="cb cb-pass" onclick="doPass()">✕ Pass</button>
+    </div>
+    <div class="vol-hint">💡 Volume Up = จบเทิร์น</div>
+  </div>
+  <div class="queue" id="q-host"></div>
+</div>
+
+<!-- ADMIN TURN -->
+<div id="screen-admin" class="hidden">
+  <div class="top-bar">
+    <button class="ghost-btn" onclick="confirmReset()">← รีเซ็ต</button>
+    <div class="badge" id="adm-badge">ADMIN</div>
+  </div>
+  <div class="admin-z">
+    <div class="adm-eye">⬡ Round จบแล้ว</div>
+    <div class="adm-title">ADMIN TURN</div>
+    <div class="adm-sub">Admin ดำเนินการก่อนเริ่ม Round ถัดไป</div>
+    <div class="adm-timer" id="adm-timer">00:00</div>
+    <div class="adm-timer-sub">เวลา Admin Turn</div>
+    <div class="adm-ctrls">
+      <button class="adm-pause" id="adm-pause-btn" onclick="toggleAdminPause()">⏸ หยุด</button>
+      <button class="adm-next" onclick="startNextRound()">เริ่ม Round ถัดไป →</button>
+    </div>
+  </div>
+  <div class="scoreboard" id="scoreboard"></div>
+</div>
+
+<!-- OBSERVER -->
+<div id="screen-observer" class="hidden">
+  <div class="top-bar">
+    <button class="ghost-btn" onclick="showHome()">← กลับ</button>
+    <div class="badge" id="obs-badge">OBSERVER</div>
+  </div>
+  <div class="obs-badge">👁 OBSERVER MODE</div>
+  <div class="az">
+    <div class="p-name" id="obs-name">—</div>
+    <div class="t-status" id="obs-lbl">รอเริ่มเกม...</div>
+    <div class="ring-wrap">
+      <svg class="ring-svg" width="220" height="220" viewBox="0 0 220 220">
+        <circle class="ring-bg" cx="110" cy="110" r="96"/>
+        <circle class="ring-fg" id="obs-ring" cx="110" cy="110" r="96"
+          stroke="rgba(255,255,255,0.85)" stroke-dasharray="603.2" stroke-dashoffset="603.2"/>
+      </svg>
+      <div class="t-center">
+        <div class="t-big" id="obs-turn">00:00</div>
+        <div class="t-sub" id="obs-total">รวม 00:00</div>
+      </div>
+    </div>
+  </div>
+  <div class="queue" id="q-obs"></div>
+</div>
+
+</div><!-- /wrap -->
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, onValue, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyBUOEttDrqZmHRHN4m3uoMPj1YTmHtJUfw",
+  authDomain: "boardgame-timer-8d216.firebaseapp.com",
+  databaseURL: "https://boardgame-timer-8d216-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "boardgame-timer-8d216",
+  storageBucket: "boardgame-timer-8d216.firebasestorage.app",
+  messagingSenderId: "1023832681904",
+  appId: "1:1023832681904:web:ccd85c3bdabc5840e43a75"
+});
+const db = getDatabase(app);
+
+// ── CONSTANTS ──────────────────────────
+const COLORS = [
+  { name:"แดง",    value:"#FF4757", light:"#FF6B81" },
+  { name:"ส้ม",    value:"#FF6348", light:"#FF8066" },
+  { name:"เหลือง", value:"#FFA502", light:"#FFBE33" },
+  { name:"เขียว",  value:"#2ED573", light:"#7BED9F" },
+  { name:"ฟ้า",    value:"#1E90FF", light:"#70B8FF" },
+  { name:"น้ำเงิน",value:"#3742FA", light:"#6C7AFF" },
+  { name:"ม่วง",   value:"#9B59B6", light:"#BE83D4" },
+  { name:"ชมพู",   value:"#FF6B9D", light:"#FF94BC" },
+  { name:"ขาว",    value:"#ECEFF1", light:"#FFFFFF" },
+  { name:"ทอง",    value:"#F9CA24", light:"#FCE070" },
+];
+const CIRC = 2 * Math.PI * 96; // ≈ 603.19
+
+// ── STATE ──────────────────────────────
+const fresh = () => ({
+  players:[], currentIdx:0, running:false,
+  round:1, mode:"turn", started:false,
+  passedInRound:[], phase:"game",
+  adminTime:0, adminRunning:false,
+});
+let S = fresh();
+let playerCount=4, selectedMode="turn";
+let roomCode=null, isHost=false;
+let tickInt=null, admInt=null, obsInt=null;
+let obsS=null, obsLT=0, obsLTotal=0;
+
+// ── HELPERS ────────────────────────────
+const fmt = s => `${Math.floor(s/60).toString().padStart(2,"0")}:${(s%60).toString().padStart(2,"0")}`;
+const randCode = () => { const c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; return Array.from({length:6},()=>c[Math.floor(Math.random()*c.length)]).join(""); };
+const SCREENS = ["screen-loading","screen-home","screen-setup","screen-timer","screen-admin","screen-observer"];
+const show = id => SCREENS.forEach(s => document.getElementById(s).classList.toggle("hidden", s!==id));
+const $ = id => document.getElementById(id);
+
+// ── BACKGROUND ─────────────────────────
+function setBg(colorObj) {
+  const blob = $("bg-blob");
+  if (!colorObj) {
+    blob.classList.remove("on"); blob.style.background="";
+    return;
+  }
+  const v = colorObj.value;
+  blob.style.background = `
+    radial-gradient(ellipse 100% 60% at 50% -10%, ${v}50 0%, transparent 62%),
+    radial-gradient(ellipse 60% 50% at 95% 100%, ${v}30 0%, transparent 55%),
+    radial-gradient(ellipse 40% 35% at 5% 90%,  ${v}20 0%, transparent 50%)`;
+  blob.classList.add("on");
+}
+function setAdminBg() {
+  const blob = $("bg-blob");
+  blob.style.background = `
+    radial-gradient(ellipse 85% 55% at 50% -5%, rgba(130,90,240,0.28) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 45% at 90% 95%, rgba(90,70,220,0.18) 0%, transparent 55%)`;
+  blob.classList.add("on");
+}
+
+// ── FIREBASE ───────────────────────────
+async function pushState() {
+  if (!roomCode||!isHost) return;
+  await set(ref(db,`rooms/${roomCode}`), {
+    ...S,
+    players: S.players.map(p=>({
+      id:p.id, name:p.name, totalTime:p.totalTime, turnTime:p.turnTime,
+      cv:p.color.value, cl:p.color.light, cn:p.color.name
+    })),
+    lastUpdated: Date.now()
+  });
+}
+const parseSnap = snap => {
+  const d=snap.val(); if(!d) return null;
+  return {...d, players:d.players.map(p=>({...p, color:{value:p.cv,light:p.cl,name:p.cn}}))};
+};
+
+// ── HOME ───────────────────────────────
+window.showHome = function() {
+  clearInterval(tickInt); clearInterval(admInt); clearInterval(obsInt);
+  setBg(null); roomCode=null; isHost=false; S=fresh(); show("screen-home");
+};
+window.showSetup = function() { show("screen-setup"); renderCountBtns(); renderPlayers(); };
+
+// ── SETUP ──────────────────────────────
+function renderCountBtns() {
+  const row=$("count-row"); row.innerHTML="";
+  [3,4,5,6,7,8,9,10].forEach(n=>{
+    const b=document.createElement("button");
+    b.className="count-btn"+(n===playerCount?" on":"");
+    b.textContent=n;
+    b.onclick=()=>{ playerCount=n; renderCountBtns(); renderPlayers(); };
+    row.appendChild(b);
+  });
+}
+function renderPlayers() {
+  const list=$("player-list"); const ex=S.players.length?S.players:[];
+  S.players=Array.from({length:playerCount},(_,i)=>ex[i]||{
+    id:i, name:`ผู้เล่น ${i+1}`, color:COLORS[i%COLORS.length], totalTime:0, turnTime:0
+  });
+  list.innerHTML="";
+  S.players.forEach((p,i)=>{
+    const row=document.createElement("div");
+    row.className="p-row"; row.style.borderLeftColor=p.color.value;
+    row.innerHTML=`
+      <span class="p-num">${i+1}</span>
+      <input class="p-inp" value="${p.name}" maxlength="16" oninput="window._S.players[${i}].name=this.value"/>
+      <div class="cdots">${COLORS.map(c=>`
+        <div class="cdot ${c.value===p.color.value?'sel':''}" style="background:${c.value}"
+          onclick="setPC(${i},'${c.value}')" title="${c.name}"></div>`).join("")}
+      </div>`;
+    list.appendChild(row);
+  });
+  window._S=S;
+}
+window.setPC = function(i,v){ S.players[i].color=COLORS.find(c=>c.value===v); renderPlayers(); };
+window.setMode = function(m){
+  selectedMode=m;
+  $("mode-turn").classList.toggle("on",m==="turn");
+  $("mode-round").classList.toggle("on",m==="round");
+};
+
+// ── START GAME ─────────────────────────
+window.startGame = async function() {
+  roomCode=randCode(); isHost=true;
+  S.mode=selectedMode; S.currentIdx=0; S.round=1;
+  S.running=false; S.started=false; S.passedInRound=[];
+  S.phase="game"; S.adminTime=0; S.adminRunning=false;
+  S.players=S.players.slice(0,playerCount).map(p=>({...p,totalTime:0,turnTime:0}));
+  await pushState(); show("screen-timer"); renderTimer();
+};
+
+// ── RENDER TIMER ───────────────────────
+function renderTimer() {
+  const p=S.players[S.currentIdx];
+  setBg(p.color);
+  const shareUrl=`${location.origin}${location.pathname}?room=${roomCode}`;
+  $("share-bar-slot").innerHTML=`
+    <div class="share-bar">
+      <div class="sb-icon">🔗</div>
+      <div class="sb-txt">
+        <div class="sb-lbl">รหัสเกม</div>
+        <div class="sb-code">${roomCode}</div>
+        <div class="sb-url">${shareUrl}</div>
+      </div>
+      <button class="cp-btn" id="cp-btn" onclick="copyLink('${shareUrl}')">คัดลอก</button>
+    </div>`;
+  $("round-badge").textContent = S.mode==="round"?`ROUND ${S.round}`:"TURN MODE";
+  $("cur-name").textContent=p.name;
+  $("t-turn").textContent=fmt(p.turnTime);
+  $("t-total").textContent=`รวม ${fmt(p.totalTime)}`;
+  $("t-lbl").textContent=!S.started?"กดเริ่ม":S.running?"กำลังเดิน...":"หยุดชั่วคราว";
+  const prog=(p.turnTime%60)/60;
+  $("ring-fg").setAttribute("stroke-dashoffset",CIRC-prog*CIRC);
+  $("ring-fg").setAttribute("stroke",p.color.value);
+  $("start-btn").classList.toggle("hidden",S.started);
+  $("ctrls").classList.toggle("hidden",!S.started);
+  $("pause-btn").textContent=S.running?"⏸ หยุด":"▶ ต่อ";
+  renderQueue();
+}
+
+function renderQueue() {
+  const others=S.players.map((pl,i)=>({...pl,oi:i})).filter((_,i)=>i!==S.currentIdx);
+  const el=$("q-host");
+  if(!others.length){ el.innerHTML=""; return; }
+  let nextIdx=-1;
+  for(let off=1;off<S.players.length;off++){
+    const idx=(S.currentIdx+off)%S.players.length;
+    if(!S.passedInRound.includes(idx)){ nextIdx=idx; break; }
+  }
+  el.innerHTML=`<div class="q-lbl">คิวผู้เล่น</div>`+
+    others.map(pl=>{
+      const passed=S.passedInRound.includes(pl.oi);
+      const isNext=pl.oi===nextIdx;
+      return `<div class="q-row ${isNext?"q-next":""} ${passed?"q-passed":""}">
+        <div class="q-dot" style="background:${pl.color.value}"></div>
+        <div class="q-name">${pl.name}</div>
+        ${isNext?'<span class="qtag qtag-next">ถัดไป</span>':""}
+        ${passed?'<span class="qtag qtag-pass">PASS</span>':""}
+        <div class="q-total">${fmt(pl.totalTime)}</div>
+      </div>`;
+    }).join("");
+}
+
+// ── CONTROLS ───────────────────────────
+window.startTimer = function(){ S.started=true; S.running=true; startTick(); renderTimer(); pushState(); };
+window.togglePause = function(){
+  S.running=!S.running;
+  if(S.running) startTick(); else clearInterval(tickInt);
+  renderTimer(); pushState();
+};
+
+window.doEndTurn = function(){
+  if(!S.started) return;
+  clearInterval(tickInt);
+  S.players[S.currentIdx].turnTime=0;
+  const next=findNext(S.currentIdx);
+  // In round mode: if we wrapped around back to start (or no active left), go admin
+  if(next===-1){ goAdmin(); return; }
+  if(S.mode==="round" && next<=S.currentIdx && !roundStillHasActive(S.currentIdx)){ goAdmin(); return; }
+  S.currentIdx=next; S.running=true; startTick(); renderTimer(); pushState();
+};
+
+window.doPass = function(){
+  if(!S.started) return;
+  clearInterval(tickInt);
+  S.players[S.currentIdx].turnTime=0;
+  if(!S.passedInRound.includes(S.currentIdx)) S.passedInRound.push(S.currentIdx);
+  // Check if everyone has passed
+  const active=S.players.filter((_,i)=>!S.passedInRound.includes(i));
+  if(active.length===0){ goAdmin(); return; }
+  const next=findNext(S.currentIdx);
+  if(next===-1){ goAdmin(); return; }
+  S.currentIdx=next; S.running=true; startTick(); renderTimer(); pushState();
+};
+
+// In round mode: after current player ends turn, check if going forward would wrap past anyone un-passed
+function roundStillHasActive(fromIdx){
+  const total=S.players.length;
+  for(let off=1;off<total;off++){
+    const idx=(fromIdx+off)%total;
+    if(idx<=fromIdx) break; // wrapped
+    if(!S.passedInRound.includes(idx)) return true;
+  }
+  return false;
+}
+
+function findNext(fromIdx){
+  const total=S.players.length;
+  for(let off=1;off<total;off++){
+    const idx=(fromIdx+off)%total;
+    if(!S.passedInRound.includes(idx)) return idx;
+  }
+  return -1;
+}
+
+function startTick(){
+  clearInterval(tickInt);
+  tickInt=setInterval(()=>{
+    if(!S.running) return;
+    S.players[S.currentIdx].totalTime++;
+    S.players[S.currentIdx].turnTime++;
+    renderTimer(); pushState();
+  },1000);
+}
+
+// ── ADMIN TURN ─────────────────────────
+function goAdmin(){
+  clearInterval(tickInt);
+  S.phase="admin"; S.running=false; S.adminTime=0; S.adminRunning=true;
+  pushState(); show("screen-admin"); renderAdmin(); startAdmTick();
+}
+function renderAdmin(){
+  setAdminBg();
+  $("adm-badge").textContent=`ROUND ${S.round} จบแล้ว`;
+  $("adm-timer").textContent=fmt(S.adminTime);
+  $("adm-pause-btn").textContent=S.adminRunning?"⏸ หยุด":"▶ ต่อ";
+  const sorted=[...S.players].sort((a,b)=>b.totalTime-a.totalTime);
+  const maxT=sorted[0]?.totalTime||1;
+  $("scoreboard").innerHTML=`<div class="sb-title">สรุปเวลาสะสม — Round ${S.round}</div>`+
+    sorted.map((p,i)=>`
+      <div class="sc-row" style="border-left-color:${p.color.value}">
+        <div class="sc-rank">${i+1}</div>
+        <div class="sc-dot" style="background:${p.color.value}"></div>
+        <div class="sc-name">${p.name}</div>
+        <div class="sc-bar-wrap"><div class="sc-bar" style="width:${(p.totalTime/maxT)*100}%;background:${p.color.value}"></div></div>
+        <div class="sc-time">${fmt(p.totalTime)}</div>
+      </div>`).join("");
+}
+function startAdmTick(){
+  clearInterval(admInt);
+  admInt=setInterval(()=>{
+    if(!S.adminRunning) return;
+    S.adminTime++; $("adm-timer").textContent=fmt(S.adminTime); pushState();
+  },1000);
+}
+window.toggleAdminPause = function(){
+  S.adminRunning=!S.adminRunning;
+  $("adm-pause-btn").textContent=S.adminRunning?"⏸ หยุด":"▶ ต่อ"; pushState();
+};
+window.startNextRound = function(){
+  clearInterval(admInt);
+  S.phase="game"; S.round++; S.passedInRound=[]; S.currentIdx=0;
+  S.running=true; S.adminTime=0; S.adminRunning=false;
+  S.players=S.players.map(p=>({...p,turnTime:0}));
+  pushState(); show("screen-timer"); renderTimer(); startTick();
+};
+
+// ── UTILS ──────────────────────────────
+window.confirmReset = function(){
+  if(confirm("รีเซ็ตเกมและกลับหน้าแรก?")){
+    clearInterval(tickInt); clearInterval(admInt);
+    set(ref(db,`rooms/${roomCode}`),null); showHome();
+  }
+};
+window.copyLink = function(url){
+  navigator.clipboard.writeText(url).then(()=>{
+    const b=$("cp-btn"); if(!b) return;
+    b.textContent="✓ คัดลอกแล้ว"; b.classList.add("ok");
+    setTimeout(()=>{ b.textContent="คัดลอก"; b.classList.remove("ok"); },2000);
+  });
+};
+
+// Volume Up = End Turn
+document.addEventListener("keydown",e=>{
+  if(!isHost||!S.started||S.phase!=="game") return;
+  if(e.key==="AudioVolumeUp"||e.keyCode===175||e.keyCode===448){ e.preventDefault(); doEndTurn(); }
+});
+
+// ── OBSERVER ───────────────────────────
+window.joinAsObserver = async function(){
+  const code=$("join-code-input").value.trim().toUpperCase();
+  if(code.length!==6){ alert("กรุณากรอกรหัส 6 ตัวอักษร"); return; }
+  const snap=await get(ref(db,`rooms/${code}`));
+  if(!snap.exists()){ alert(`ไม่พบห้อง "${code}"`); return; }
+  roomCode=code; isHost=false; show("screen-observer"); listenObs();
+};
+
+function listenObs(){
+  clearInterval(obsInt);
+  onValue(ref(db,`rooms/${roomCode}`),snap=>{
+    const parsed=parseSnap(snap);
+    if(!parsed){ alert("เกมนี้ถูกปิดแล้ว"); showHome(); return; }
+    obsS=parsed;
+    const cp=parsed.players[parsed.currentIdx];
+    obsLT=cp.turnTime; obsLTotal=cp.totalTime;
+    renderObs();
+    clearInterval(obsInt);
+    if(parsed.running&&parsed.phase==="game"){
+      obsInt=setInterval(()=>{ obsLT++; obsLTotal++; renderObsTimes(); },1000);
+    }
+  });
+}
+
+function renderObs(){
+  if(!obsS) return;
+  const p=obsS.players[obsS.currentIdx];
+  const isAdmin=obsS.phase==="admin";
+  isAdmin?setAdminBg():setBg(p.color);
+  $("obs-badge").textContent=isAdmin?"ADMIN TURN":obsS.mode==="round"?`ROUND ${obsS.round}`:"TURN MODE";
+  $("obs-name").textContent=isAdmin?"ADMIN TURN":p.name;
+  $("obs-lbl").textContent=isAdmin?"Admin กำลังดำเนินการ...":!obsS.started?"รอเริ่มเกม...":obsS.running?"กำลังเดิน...":"หยุดชั่วคราว";
+  $("obs-ring").setAttribute("stroke",isAdmin?"rgba(180,140,255,0.9)":p.color.value);
+  renderObsTimes();
+  const others=obsS.players.map((pl,i)=>({...pl,oi:i})).filter((_,i)=>i!==obsS.currentIdx);
+  const el=$("q-obs");
+  if(!others.length){ el.innerHTML=""; return; }
+  el.innerHTML=`<div class="q-lbl">คิวผู้เล่น</div>`+
+    others.map(pl=>{
+      const passed=(obsS.passedInRound||[]).includes(pl.oi);
+      return `<div class="q-row ${passed?"q-passed":""}">
+        <div class="q-dot" style="background:${pl.color.value}"></div>
+        <div class="q-name">${pl.name}</div>
+        ${passed?'<span class="qtag qtag-pass">PASS</span>':""}
+        <div class="q-total">${fmt(pl.totalTime)}</div>
+      </div>`;
+    }).join("");
+}
+function renderObsTimes(){
+  $("obs-turn").textContent=fmt(obsLT);
+  $("obs-total").textContent=`รวม ${fmt(obsLTotal)}`;
+  $("obs-ring").setAttribute("stroke-dashoffset",CIRC-(obsLT%60)/60*CIRC);
+}
+
+// ── INIT ───────────────────────────────
+window.addEventListener("DOMContentLoaded",async()=>{
+  const room=new URLSearchParams(location.search).get("room");
+  if(room){
+    const snap=await get(ref(db,`rooms/${room}`));
+    if(snap.exists()){ roomCode=room; isHost=false; show("screen-observer"); listenObs(); }
+    else show("screen-home");
+  } else show("screen-home");
+});
+</script>
+</body>
+</html>
