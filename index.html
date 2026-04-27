@@ -1,238 +1,99 @@
 <!DOCTYPE html>
+<!--
+ This is new pathc form chatgdp
+-->
 <html lang="th">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Board Game Timer</title>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap" rel="stylesheet" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Board Game Timer PRO</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #0f0f13; color: #fff; font-family: 'Outfit', sans-serif; min-height: 100vh; }
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: #1a1a22; }
-  ::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+body {
+  margin:0;
+  font-family:sans-serif;
+  background:linear-gradient(135deg,#1e1e2f,#12121a);
+  color:white;
+}
 
-  /* ===== SHARED ===== */
-  .hidden { display: none !important; }
-  .screen { min-height: 100vh; }
+.container { padding:15px; }
 
-  /* ===== HOME SCREEN ===== */
-  #screen-home { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 40px 24px; }
-  .home-logo { font-size: 13px; letter-spacing: 4px; color: #555; text-transform: uppercase; margin-bottom: 12px; }
-  .home-title { font-size: 64px; font-weight: 900; line-height: 1; background: linear-gradient(135deg, #fff 0%, #555 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 6px; text-align: center; }
-  .home-sub { font-size: 15px; color: #444; font-weight: 300; margin-bottom: 56px; }
-  .home-btn { width: 100%; max-width: 360px; padding: 18px; border-radius: 14px; border: none; font-family: inherit; font-size: 17px; font-weight: 800; cursor: pointer; transition: all .15s; margin-bottom: 12px; }
-  .home-btn-primary { background: #fff; color: #000; }
-  .home-btn-primary:hover { opacity: .9; transform: translateY(-1px); }
-  .home-btn-secondary { background: #1a1a22; color: #888; border: 1.5px solid #2a2a35; }
-  .home-btn-secondary:hover { border-color: #555; color: #ccc; }
-  .home-or { color: #333; font-size: 13px; margin: 4px 0; }
+.player {
+  padding:15px;
+  border-radius:15px;
+  margin:8px 0;
+  font-size:18px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
 
-  /* join by code */
-  .join-row { display: flex; gap: 8px; width: 100%; max-width: 360px; margin-top: 8px; }
-  .join-input { flex: 1; background: #1a1a22; border: 1.5px solid #2a2a35; color: #fff; font-family: inherit; font-size: 18px; font-weight: 700; letter-spacing: 4px; text-align: center; border-radius: 12px; padding: 14px; outline: none; text-transform: uppercase; }
-  .join-input:focus { border-color: #555; }
-  .join-input::placeholder { letter-spacing: 2px; font-size: 14px; color: #333; }
-  .join-btn { background: #1a1a22; border: 1.5px solid #2a2a35; color: #888; font-family: inherit; font-size: 14px; font-weight: 700; border-radius: 12px; padding: 14px 20px; cursor: pointer; transition: all .15s; white-space: nowrap; }
-  .join-btn:hover { border-color: #fff; color: #fff; }
+.active {
+  box-shadow:0 0 15px yellow;
+  transform:scale(1.02);
+}
 
-  /* ===== SETUP SCREEN ===== */
-  #screen-setup { padding-bottom: 48px; }
-  .setup-header { text-align: center; padding: 48px 24px 24px; }
-  .setup-title { font-size: 40px; font-weight: 900; margin-bottom: 4px; }
-  .setup-sub { font-size: 14px; color: #444; }
-  .section { max-width: 640px; margin: 0 auto; padding: 0 24px; }
-  .section-label { font-size: 11px; letter-spacing: 3px; color: #555; text-transform: uppercase; margin-bottom: 12px; margin-top: 32px; }
-  .count-row { display: flex; gap: 8px; flex-wrap: wrap; }
-  .count-btn { width: 44px; height: 44px; border: 1.5px solid #2a2a35; background: #1a1a22; color: #888; border-radius: 10px; cursor: pointer; font-size: 16px; font-weight: 600; font-family: inherit; transition: all .15s; }
-  .count-btn.active { border-color: #fff; background: #fff; color: #000; }
-  .count-btn:hover:not(.active) { border-color: #444; color: #ccc; }
-  .mode-row { display: flex; gap: 12px; }
-  .mode-btn { flex: 1; padding: 16px; border: 1.5px solid #2a2a35; background: #1a1a22; color: #888; border-radius: 12px; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 600; transition: all .15s; text-align: left; }
-  .mode-btn.active { border-color: #fff; background: #1e1e2a; color: #fff; }
-  .mode-icon { font-size: 24px; margin-bottom: 6px; display: block; }
-  .mode-title { display: block; font-size: 15px; font-weight: 700; margin-bottom: 2px; }
-  .mode-desc { display: block; font-size: 11px; font-weight: 400; color: #555; line-height: 1.4; }
-  .mode-btn.active .mode-desc { color: #888; }
-  .player-list { display: flex; flex-direction: column; gap: 10px; }
-  .player-row { display: flex; align-items: center; gap: 10px; background: #1a1a22; border: 1.5px solid #2a2a35; border-radius: 12px; padding: 12px 14px; border-left-width: 3px; }
-  .player-num { font-size: 12px; color: #444; font-weight: 700; width: 20px; flex-shrink: 0; }
-  .player-input { flex: 1; min-width: 0; background: transparent; border: none; outline: none; color: #fff; font-family: inherit; font-size: 15px; font-weight: 500; }
-  .player-input::placeholder { color: #333; }
-  .color-picker { display: flex; gap: 6px; flex-wrap: wrap; }
-  .color-dot { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform .12s, border-color .12s; flex-shrink: 0; }
-  .color-dot:hover { transform: scale(1.2); }
-  .color-dot.selected { border-color: #fff; transform: scale(1.15); }
-  .start-btn { width: calc(100% - 48px); max-width: 592px; margin: 32px 24px 0; display: block; padding: 18px; background: #fff; color: #000; border: none; border-radius: 14px; font-family: inherit; font-size: 17px; font-weight: 800; cursor: pointer; transition: all .15s; }
-  .start-btn:hover { opacity: .9; transform: translateY(-1px); }
+button {
+  width:100%;
+  padding:15px;
+  margin:5px 0;
+  font-size:18px;
+  border:none;
+  border-radius:12px;
+}
 
-  /* ===== TIMER SCREEN ===== */
-  #screen-timer { display: flex; flex-direction: column; align-items: center; }
-  .timer-top { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 20px 24px 0; max-width: 600px; }
-  .back-btn { background: none; border: 1.5px solid #2a2a35; color: #666; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 13px; transition: all .15s; }
-  .back-btn:hover { border-color: #555; color: #ccc; }
-  .round-badge { background: #1a1a22; border: 1.5px solid #2a2a35; color: #888; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; }
-  .active-zone { display: flex; flex-direction: column; align-items: center; padding: 32px 24px 20px; width: 100%; max-width: 600px; }
-  .player-name-big { font-size: 36px; font-weight: 900; margin-bottom: 4px; letter-spacing: -1px; }
-  .turn-label { font-size: 12px; letter-spacing: 3px; color: #555; text-transform: uppercase; margin-bottom: 32px; }
-  .ring-container { position: relative; width: 240px; height: 240px; }
-  .ring-svg { transform: rotate(-90deg); }
-  .ring-bg { fill: none; stroke: #1e1e2a; stroke-width: 8; }
-  .ring-fg { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset .9s linear; }
-  .time-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-  .turn-time { font-size: 54px; font-weight: 900; letter-spacing: -2px; line-height: 1; }
-  .total-time-label { font-size: 13px; color: #555; margin-top: 4px; }
-  .controls { display: flex; gap: 12px; margin-top: 32px; }
-  .ctrl-btn { border: none; border-radius: 14px; cursor: pointer; font-family: inherit; font-weight: 700; font-size: 15px; padding: 14px 28px; transition: all .12s; }
-  .pause-btn { background: #1e1e2a; color: #ccc; border: 1.5px solid #2a2a35; }
-  .pause-btn:hover { border-color: #555; color: #fff; }
-  .next-btn { color: #000; padding: 14px 36px; font-size: 16px; }
-  .next-btn:hover { opacity: .9; transform: translateY(-1px); }
-  .start-here-btn { background: #fff; color: #000; padding: 14px 48px; font-size: 16px; border-radius: 14px; border: none; cursor: pointer; font-family: inherit; font-weight: 800; margin-top: 32px; }
-  .vol-hint { font-size: 12px; color: #333; margin-top: 12px; }
-  .player-queue { width: 100%; max-width: 600px; padding: 16px 24px 48px; display: flex; flex-direction: column; gap: 6px; }
-  .queue-label { font-size: 11px; letter-spacing: 3px; color: #444; text-transform: uppercase; margin-bottom: 6px; }
-  .queue-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px; background: #14141a; border: 1.5px solid #1e1e28; }
-  .queue-item.is-next { border-color: #2e2e40; background: #1a1a26; }
-  .queue-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-  .queue-name { flex: 1; font-size: 14px; font-weight: 600; color: #666; }
-  .queue-item.is-next .queue-name { color: #ccc; }
-  .queue-total { font-size: 13px; color: #444; font-weight: 600; font-variant-numeric: tabular-nums; }
+.primary { background:#4CAF50; color:white; }
+.secondary { background:#333; color:white; }
 
-  /* ===== SHARE BAR ===== */
-  .share-bar { width: 100%; max-width: 600px; margin: 20px 24px 0; background: #1a1a22; border: 1.5px solid #2a2a35; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
-  .share-bar-icon { font-size: 20px; flex-shrink: 0; }
-  .share-bar-text { flex: 1; min-width: 0; }
-  .share-bar-label { font-size: 11px; color: #555; letter-spacing: 2px; text-transform: uppercase; }
-  .share-bar-url { font-size: 13px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .share-bar-code { font-size: 20px; font-weight: 900; letter-spacing: 4px; color: #fff; }
-  .copy-btn { background: #2a2a35; border: none; color: #888; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 600; transition: all .15s; flex-shrink: 0; }
-  .copy-btn:hover { background: #3a3a45; color: #fff; }
-  .copy-btn.copied { background: #2ed573; color: #000; }
-
-  /* ===== OBSERVER SCREEN ===== */
-  #screen-observer { display: flex; flex-direction: column; align-items: center; }
-  .observer-badge { background: #1a1a22; border: 1.5px solid #ff6348; color: #ff6348; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-top: 20px; }
-
-  /* ===== LOADING ===== */
-  #screen-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; gap: 16px; }
-  .spinner { width: 40px; height: 40px; border: 3px solid #2a2a35; border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .loading-text { color: #555; font-size: 14px; }
+.topbar {
+  position:sticky;
+  top:0;
+  background:#0008;
+  padding:10px;
+  backdrop-filter:blur(10px);
+}
 </style>
+
 </head>
+
 <body>
 
-<!-- LOADING -->
-<div id="screen-loading">
-  <div class="spinner"></div>
-  <div class="loading-text">กำลังโหลด...</div>
+<div class="topbar">
+  <b id="room"></b>
 </div>
 
-<!-- HOME -->
-<div id="screen-home" class="hidden">
-  <div class="home-logo">⬡ Board Game</div>
-  <div class="home-title">TIMER</div>
-  <div class="home-sub">จับเวลาบอร์ดเกมแบบ real-time</div>
-  <button class="home-btn home-btn-primary" onclick="showSetup()">🎮 สร้างเกมใหม่</button>
-  <div class="home-or">หรือ</div>
-  <div class="join-row">
-    <input class="join-input" id="join-code-input" maxlength="6" placeholder="รหัสเกม 6 ตัว" oninput="this.value=this.value.toUpperCase()" />
-    <button class="join-btn" onclick="joinAsObserver()">เข้าดู 👁</button>
-  </div>
+<div class="container">
+
+<div id="setup">
+  <input id="playerCount" type="number" min="3" max="10" value="3">
+  <button class="primary" onclick="setupPlayers()">สร้างผู้เล่น</button>
+  <div id="playersSetup"></div>
+
+  <select id="mode">
+    <option value="turn">Turn</option>
+    <option value="round">Round</option>
+  </select>
+
+<button class="primary" onclick="startGame()">Start Game</button>
+
 </div>
 
-<!-- SETUP -->
-<div id="screen-setup" class="hidden">
-  <div class="setup-header">
-    <div style="font-size:11px;letter-spacing:3px;color:#444;text-transform:uppercase;margin-bottom:8px;">⬡ Board Game Timer</div>
-    <div class="setup-title">ตั้งค่าเกม</div>
-    <div class="setup-sub">กำหนดผู้เล่นและโหมดก่อนเริ่ม</div>
-  </div>
-  <div class="section">
-    <div class="section-label">จำนวนผู้เล่น</div>
-    <div class="count-row" id="count-row"></div>
-    <div class="section-label">โหมดเกม</div>
-    <div class="mode-row">
-      <button class="mode-btn active" id="mode-turn" onclick="setMode('turn')">
-        <span class="mode-icon">🔄</span>
-        <span class="mode-title">Turn Mode</span>
-        <span class="mode-desc">จับเวลาแต่ละคนแยก รวมเวลาทั้งหมดของแต่ละคน</span>
-      </button>
-      <button class="mode-btn" id="mode-round" onclick="setMode('round')">
-        <span class="mode-icon">🔃</span>
-        <span class="mode-title">Round Mode</span>
-        <span class="mode-desc">จับเวลาเป็นรอบ หมุนครบทุกคนแล้วขึ้น Round ใหม่</span>
-      </button>
-    </div>
-    <div class="section-label">ผู้เล่น</div>
-    <div class="player-list" id="player-list"></div>
-  </div>
-  <button class="start-btn" onclick="startGame()">เริ่มเกม →</button>
+<div id="gameUI" style="display:none">
+  <h2 id="status"></h2>
+  <div id="players"></div>
+
+<button class="primary" onclick="nextTurn()">➡️ Next Turn</button> <button class="secondary" onclick="toggleRun()">⏯ Pause/Resume</button> <button class="secondary" onclick="resetGame()">🔄 Reset</button> <button class="secondary" onclick="startAudio()">🎤 Clap to Skip</button>
+
 </div>
 
-<!-- TIMER (Host) -->
-<div id="screen-timer" class="hidden">
-  <div class="timer-top">
-    <button class="back-btn" onclick="confirmReset()">← รีเซ็ต</button>
-    <div class="round-badge" id="round-badge">Turn Mode</div>
-  </div>
-  <div id="share-bar-container"></div>
-  <div class="active-zone">
-    <div class="player-name-big" id="current-name">—</div>
-    <div class="turn-label" id="turn-label">กดเริ่ม</div>
-    <div class="ring-container">
-      <svg class="ring-svg" width="240" height="240" viewBox="0 0 240 240">
-        <circle class="ring-bg" cx="120" cy="120" r="100"/>
-        <circle class="ring-fg" id="ring-fg" cx="120" cy="120" r="100" stroke="#fff"
-          stroke-dasharray="628.3" stroke-dashoffset="628.3"/>
-      </svg>
-      <div class="time-center">
-        <div class="turn-time" id="turn-time-display">00:00</div>
-        <div class="total-time-label" id="total-time-display">รวม 00:00</div>
-      </div>
-    </div>
-    <button class="start-here-btn" id="start-here-btn" onclick="startTimer()">▶ เริ่มเลย</button>
-    <div class="controls hidden" id="controls">
-      <button class="ctrl-btn pause-btn" id="pause-btn" onclick="togglePause()">⏸ หยุด</button>
-      <button class="ctrl-btn next-btn" id="next-btn" onclick="nextTurn()">เทิร์นถัดไป →</button>
-    </div>
-    <div class="vol-hint">💡 กด Volume Up เพื่อเปลี่ยนเทิร์น</div>
-  </div>
-  <div class="player-queue" id="player-queue"></div>
 </div>
 
-<!-- OBSERVER -->
-<div id="screen-observer" class="hidden">
-  <div class="timer-top">
-    <button class="back-btn" onclick="showHome()">← กลับ</button>
-    <div class="round-badge" id="obs-round-badge">Observer</div>
-  </div>
-  <div class="observer-badge">👁 Observer Mode</div>
-  <div class="active-zone">
-    <div class="player-name-big" id="obs-current-name">—</div>
-    <div class="turn-label" id="obs-turn-label">รอเริ่มเกม...</div>
-    <div class="ring-container">
-      <svg class="ring-svg" width="240" height="240" viewBox="0 0 240 240">
-        <circle class="ring-bg" cx="120" cy="120" r="100"/>
-        <circle class="ring-fg" id="obs-ring-fg" cx="120" cy="120" r="100" stroke="#fff"
-          stroke-dasharray="628.3" stroke-dashoffset="628.3"/>
-      </svg>
-      <div class="time-center">
-        <div class="turn-time" id="obs-turn-time">00:00</div>
-        <div class="total-time-label" id="obs-total-time">รวม 00:00</div>
-      </div>
-    </div>
-  </div>
-  <div class="player-queue" id="obs-player-queue"></div>
-</div>
-
-<!-- Firebase SDK -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, onValue, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-// ===== FIREBASE CONFIG =====
+<script>
+// 🔥 Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyBUOEttDrqZmHRHN4m3uoMPj1YTmHtJUfw",
   authDomain: "boardgame-timer-8d216.firebaseapp.com",
@@ -243,391 +104,164 @@ const firebaseConfig = {
   appId: "1:1023832681904:web:ccd85c3bdabc5840e43a75"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-// ===== CONSTANTS =====
-const COLORS = [
-  { name:"แดง",   value:"#FF4757", light:"#ff6b81" },
-  { name:"ส้ม",   value:"#FF6348", light:"#ff7f5e" },
-  { name:"เหลือง",value:"#FFA502", light:"#ffbe33" },
-  { name:"เขียว", value:"#2ED573", light:"#7bed9f" },
-  { name:"ฟ้า",   value:"#1E90FF", light:"#70b8ff" },
-  { name:"น้ำเงิน",value:"#3742FA",light:"#6c7aff" },
-  { name:"ม่วง",  value:"#9B59B6", light:"#be83d4" },
-  { name:"ชมพู",  value:"#FF6B9D", light:"#ff94bc" },
-  { name:"ขาว",   value:"#ECEFF1", light:"#FFFFFF" },
-  { name:"ทอง",   value:"#F9CA24", light:"#fce070" },
-];
-const CIRC = 2 * Math.PI * 100;
+// 🧠 session
+let gameId = new URLSearchParams(location.search).get("game") || genId();
+let userId = localStorage.getItem("uid") || genId();
+localStorage.setItem("uid", userId);
 
-// ===== STATE =====
-let state = {
-  players: [],
-  currentIdx: 0,
-  running: false,
-  round: 1,
-  mode: "turn",
-  started: false,
-};
-let playerCount = 4;
-let selectedMode = "turn";
-let roomCode = null;
-let isHost = false;
-let tickInterval = null;
-let obsTickInterval = null;
-let obsState = null;
-let obsLastSnapshot = null;
-let obsLocalTurnTime = 0;
-let obsLocalTotalTime = 0;
-let obsLocalStartedAt = null;
+const ref = db.ref("games/" + gameId);
 
-// ===== UTILS =====
-function fmt(s) {
-  const m = Math.floor(s/60).toString().padStart(2,"0");
-  const sc = (s%60).toString().padStart(2,"0");
-  return `${m}:${sc}`;
-}
-function randCode() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({length:6}, () => chars[Math.floor(Math.random()*chars.length)]).join("");
-}
-function show(id) {
-  ["screen-loading","screen-home","screen-setup","screen-timer","screen-observer"]
-    .forEach(s => document.getElementById(s).classList.toggle("hidden", s !== id));
+if (!location.search.includes("game")) {
+  history.replaceState({}, "", "?game="+gameId);
 }
 
-// ===== HOME =====
-window.showHome = function() {
-  clearInterval(tickInterval);
-  clearInterval(obsTickInterval);
-  roomCode = null; isHost = false; state = { players:[], currentIdx:0, running:false, round:1, mode:"turn", started:false };
-  show("screen-home");
-};
+document.getElementById("room").innerText = "Room: "+gameId;
 
-window.showSetup = function() {
-  show("screen-setup");
-  renderCountBtns();
-  renderPlayers();
-};
+// 🎲 setup
+function setupPlayers(){
+  let n = playerCount.value;
+  let div = playersSetup;
+  div.innerHTML="";
 
-// ===== SETUP =====
-function renderCountBtns() {
-  const row = document.getElementById("count-row");
-  row.innerHTML = "";
-  [3,4,5,6,7,8,9,10].forEach(n => {
-    const b = document.createElement("button");
-    b.className = "count-btn" + (n === playerCount ? " active" : "");
-    b.textContent = n;
-    b.onclick = () => { playerCount = n; renderCountBtns(); renderPlayers(); };
-    row.appendChild(b);
-  });
-}
-
-function renderPlayers() {
-  const list = document.getElementById("player-list");
-  // Keep existing player data if available
-  const existing = state.players.length ? state.players : [];
-  const players = Array.from({length: playerCount}, (_, i) => existing[i] || {
-    id: i, name: `ผู้เล่น ${i+1}`, color: COLORS[i % COLORS.length],
-    totalTime: 0, turnTime: 0
-  });
-  state.players = players;
-  list.innerHTML = "";
-  players.forEach((p, i) => {
-    const row = document.createElement("div");
-    row.className = "player-row";
-    row.style.borderLeftColor = p.color.value;
-    row.innerHTML = `
-      <span class="player-num">${i+1}</span>
-      <input class="player-input" value="${p.name}" maxlength="16"
-        oninput="state.players[${i}].name=this.value" />
-      <div class="color-picker">${COLORS.map(c=>`
-        <div class="color-dot ${c.value===p.color.value?'selected':''}"
-          style="background:${c.value}"
-          onclick="setPlayerColor(${i},'${c.value}')"
-          title="${c.name}"></div>`).join("")}
-      </div>`;
-    list.appendChild(row);
-  });
-}
-
-window.setPlayerColor = function(i, colorVal) {
-  state.players[i].color = COLORS.find(c=>c.value===colorVal);
-  renderPlayers();
-};
-
-window.setMode = function(m) {
-  selectedMode = m;
-  document.getElementById("mode-turn").classList.toggle("active", m==="turn");
-  document.getElementById("mode-round").classList.toggle("active", m==="round");
-};
-
-window.startGame = async function() {
-  roomCode = randCode();
-  isHost = true;
-  state.mode = selectedMode;
-  state.currentIdx = 0;
-  state.round = 1;
-  state.running = false;
-  state.started = false;
-  state.players = state.players.slice(0, playerCount).map(p => ({...p, totalTime:0, turnTime:0}));
-  await pushState();
-  renderTimer();
-  show("screen-timer");
-};
-
-// ===== FIREBASE =====
-async function pushState() {
-  if (!roomCode || !isHost) return;
-  await set(ref(db, `rooms/${roomCode}`), {
-    ...state,
-    players: state.players.map(p => ({
-      id: p.id, name: p.name, totalTime: p.totalTime, turnTime: p.turnTime,
-      colorValue: p.color.value, colorLight: p.color.light, colorName: p.color.name
-    })),
-    lastUpdated: Date.now()
-  });
-}
-
-function parseFirebaseState(snap) {
-  const d = snap.val();
-  if (!d) return null;
-  return {
-    ...d,
-    players: d.players.map(p => ({
-      ...p,
-      color: { value: p.colorValue, light: p.colorLight, name: p.colorName }
-    }))
-  };
-}
-
-// ===== TIMER (HOST) =====
-function renderTimer() {
-  const p = state.players[state.currentIdx];
-  const shareUrl = `${location.origin}${location.pathname}?room=${roomCode}`;
-
-  // Share bar
-  const sbc = document.getElementById("share-bar-container");
-  sbc.innerHTML = `
-    <div class="share-bar" style="margin:16px 24px 0;max-width:552px;">
-      <div class="share-bar-icon">🔗</div>
-      <div class="share-bar-text">
-        <div class="share-bar-label">รหัสเกม</div>
-        <div class="share-bar-code">${roomCode}</div>
-        <div class="share-bar-url">${shareUrl}</div>
-      </div>
-      <button class="copy-btn" id="copy-btn" onclick="copyLink('${shareUrl}')">คัดลอก</button>
+  for(let i=0;i<n;i++){
+    div.innerHTML += `
+    <div>
+      <input id="name${i}" placeholder="Player ${i+1}">
+      <input type="color" id="color${i}">
     </div>`;
-
-  // Round badge
-  const rb = document.getElementById("round-badge");
-  rb.textContent = state.mode === "round" ? `Round ${state.round}` : "Turn Mode";
-
-  // Current player
-  document.getElementById("current-name").textContent = p.name;
-  document.getElementById("current-name").style.color = p.color.value;
-  document.getElementById("turn-time-display").style.color = p.color.light;
-
-  // Ring
-  const ring = document.getElementById("ring-fg");
-  ring.setAttribute("stroke", p.color.value);
-  const prog = (p.turnTime % 60) / 60;
-  ring.setAttribute("stroke-dashoffset", CIRC - prog * CIRC);
-
-  // Times
-  document.getElementById("turn-time-display").textContent = fmt(p.turnTime);
-  document.getElementById("total-time-display").textContent = `รวม ${fmt(p.totalTime)}`;
-
-  // Label
-  document.getElementById("turn-label").textContent =
-    state.running ? "กำลังเดิน..." : (state.started ? "หยุดชั่วคราว" : "กดเริ่ม");
-
-  // Buttons
-  const startBtn = document.getElementById("start-here-btn");
-  const controls = document.getElementById("controls");
-  if (!state.started) {
-    startBtn.classList.remove("hidden");
-    controls.classList.add("hidden");
-  } else {
-    startBtn.classList.add("hidden");
-    controls.classList.remove("hidden");
   }
-
-  const pauseBtn = document.getElementById("pause-btn");
-  pauseBtn.textContent = state.running ? "⏸ หยุด" : "▶ ต่อ";
-
-  const nextBtn = document.getElementById("next-btn");
-  nextBtn.style.background = p.color.value;
-
-  // Queue
-  const queue = document.getElementById("player-queue");
-  const others = state.players.filter((_, i) => i !== state.currentIdx);
-  if (others.length === 0) { queue.innerHTML = ""; return; }
-  queue.innerHTML = `<div class="queue-label">คิวผู้เล่น</div>` +
-    others.map((pl, qi) => {
-      const isNext = state.players.indexOf(pl) === (state.currentIdx+1) % state.players.length;
-      return `<div class="queue-item ${isNext?'is-next':''}">
-        <div class="queue-dot" style="background:${pl.color.value}"></div>
-        <div class="queue-name">${pl.name}${isNext?' · ถัดไป':''}</div>
-        <div class="queue-total">${fmt(pl.totalTime)}</div>
-      </div>`;
-    }).join("");
 }
 
-window.startTimer = function() {
-  state.started = true;
-  state.running = true;
-  startTick();
-  renderTimer();
-  pushState();
-};
+// 🚀 start
+function startGame(){
+  let n = playerCount.value;
+  let players=[];
 
-window.togglePause = function() {
-  state.running = !state.running;
-  if (state.running) startTick(); else clearInterval(tickInterval);
-  renderTimer();
-  pushState();
-};
-
-window.nextTurn = function() {
-  state.players[state.currentIdx].turnTime = 0;
-  state.currentIdx = (state.currentIdx + 1) % state.players.length;
-  if (state.mode === "round" && state.currentIdx === 0) state.round++;
-  state.running = true;
-  startTick();
-  renderTimer();
-  pushState();
-};
-
-window.confirmReset = function() {
-  if (confirm("รีเซ็ตเกมและกลับหน้าแรก?")) {
-    clearInterval(tickInterval);
-    set(ref(db, `rooms/${roomCode}`), null);
-    showHome();
+  for(let i=0;i<n;i++){
+    players.push({
+      name:document.getElementById("name"+i).value||"P"+(i+1),
+      color:document.getElementById("color"+i).value||randColor(),
+      time:60
+    });
   }
-};
 
-window.copyLink = function(url) {
-  navigator.clipboard.writeText(url).then(() => {
-    const btn = document.getElementById("copy-btn");
-    btn.textContent = "✓ คัดลอกแล้ว";
-    btn.classList.add("copied");
-    setTimeout(() => { btn.textContent = "คัดลอก"; btn.classList.remove("copied"); }, 2000);
-  });
-};
-
-function startTick() {
-  clearInterval(tickInterval);
-  tickInterval = setInterval(() => {
-    if (!state.running) return;
-    state.players[state.currentIdx].totalTime++;
-    state.players[state.currentIdx].turnTime++;
-    renderTimer();
-    pushState();
-  }, 1000);
-}
-
-// ===== OBSERVER =====
-window.joinAsObserver = async function() {
-  const code = document.getElementById("join-code-input").value.trim().toUpperCase();
-  if (code.length !== 6) { alert("กรุณากรอกรหัสเกม 6 ตัวอักษร"); return; }
-  const snap = await get(ref(db, `rooms/${code}`));
-  if (!snap.exists()) { alert(`ไม่พบห้อง "${code}" กรุณาตรวจสอบรหัสอีกครั้ง`); return; }
-  roomCode = code;
-  isHost = false;
-  show("screen-observer");
-  listenObserver();
-};
-
-function listenObserver() {
-  clearInterval(obsTickInterval);
-  onValue(ref(db, `rooms/${roomCode}`), snap => {
-    const parsed = parseFirebaseState(snap);
-    if (!parsed) { alert("เกมนี้ถูกปิดแล้ว"); showHome(); return; }
-    obsLastSnapshot = parsed;
-    obsState = parsed;
-    obsLocalTurnTime = parsed.players[parsed.currentIdx].turnTime;
-    obsLocalTotalTime = parsed.players[parsed.currentIdx].totalTime;
-    obsLocalStartedAt = parsed.running ? Date.now() : null;
-    renderObserver();
-
-    clearInterval(obsTickInterval);
-    if (parsed.running) {
-      obsTickInterval = setInterval(() => {
-        obsLocalTurnTime++;
-        obsLocalTotalTime++;
-        renderObserverTimes();
-      }, 1000);
-    }
+  ref.set({
+    players,
+    currentTurn:0,
+    running:true,
+    mode:mode.value,
+    lastUpdate:Date.now()
   });
 }
 
-function renderObserver() {
-  if (!obsState) return;
-  const p = obsState.players[obsState.currentIdx];
+// 🔄 realtime sync
+let game=null;
 
-  document.getElementById("obs-round-badge").textContent =
-    obsState.mode === "round" ? `Round ${obsState.round}` : "Turn Mode";
-  document.getElementById("obs-current-name").textContent = p.name;
-  document.getElementById("obs-current-name").style.color = p.color.value;
-  document.getElementById("obs-turn-time").style.color = p.color.light;
-  document.getElementById("obs-ring-fg").setAttribute("stroke", p.color.value);
-  document.getElementById("obs-turn-label").textContent =
-    obsState.running ? "กำลังเดิน..." : (obsState.started ? "หยุดชั่วคราว" : "รอเริ่มเกม...");
+ref.on("value", snap=>{
+  game=snap.val();
+  if(!game)return;
 
-  renderObserverTimes();
+  setup.style.display="none";
+  gameUI.style.display="block";
 
-  // Queue
-  const queue = document.getElementById("obs-player-queue");
-  const others = obsState.players.filter((_, i) => i !== obsState.currentIdx);
-  if (others.length === 0) { queue.innerHTML = ""; return; }
-  queue.innerHTML = `<div class="queue-label">คิวผู้เล่น</div>` +
-    others.map(pl => {
-      const isNext = obsState.players.indexOf(pl) === (obsState.currentIdx+1) % obsState.players.length;
-      return `<div class="queue-item ${isNext?'is-next':''}">
-        <div class="queue-dot" style="background:${pl.color.value}"></div>
-        <div class="queue-name">${pl.name}${isNext?' · ถัดไป':''}</div>
-        <div class="queue-total">${fmt(pl.totalTime)}</div>
-      </div>`;
-    }).join("");
-}
-
-function renderObserverTimes() {
-  document.getElementById("obs-turn-time").textContent = fmt(obsLocalTurnTime);
-  document.getElementById("obs-total-time").textContent = `รวม ${fmt(obsLocalTotalTime)}`;
-  const prog = (obsLocalTurnTime % 60) / 60;
-  document.getElementById("obs-ring-fg").setAttribute("stroke-dashoffset", CIRC - prog * CIRC);
-}
-
-// ===== VOLUME KEY =====
-document.addEventListener("keydown", e => {
-  if (!isHost || !state.started) return;
-  if (e.key === "AudioVolumeUp" || e.keyCode === 175 || e.keyCode === 448) {
-    e.preventDefault();
-    nextTurn();
-  }
+  render();
 });
 
-// ===== INIT =====
-window.addEventListener("DOMContentLoaded", async () => {
-  const params = new URLSearchParams(location.search);
-  const room = params.get("room");
-  if (room) {
-    // Auto-join as observer
-    document.getElementById("join-code-input") && (document.getElementById("join-code-input").value = room);
-    const snap = await get(ref(db, `rooms/${room}`));
-    if (snap.exists()) {
-      roomCode = room; isHost = false;
-      show("screen-observer");
-      listenObserver();
-    } else {
-      show("screen-home");
+// ⏱️ timer (hostless shared logic)
+setInterval(()=>{
+  if(!game || !game.running) return;
+
+  ref.transaction(g=>{
+    if(!g) return g;
+
+    let now=Date.now();
+    if(now - g.lastUpdate < 900) return g;
+
+    g.lastUpdate=now;
+
+    if(g.mode==="turn"){
+      g.players[g.currentTurn].time--;
+      if(g.players[g.currentTurn].time<=0){
+        g.currentTurn=(g.currentTurn+1)%g.players.length;
+      }
     }
-  } else {
-    show("screen-home");
-  }
-});
+
+    return g;
+  });
+},1000);
+
+// 🔁 next turn (multiplayer safe)
+function nextTurn(){
+  ref.transaction(g=>{
+    if(!g)return g;
+    g.currentTurn=(g.currentTurn+1)%g.players.length;
+    return g;
+  });
+}
+
+// ⏯ toggle
+function toggleRun(){
+  ref.transaction(g=>{
+    if(!g)return g;
+    g.running=!g.running;
+    return g;
+  });
+}
+
+// 🔄 reset
+function resetGame(){
+  ref.remove();
+  location.reload();
+}
+
+// 🎨 render
+function render(){
+  let div=document.getElementById("players");
+  div.innerHTML="";
+
+  game.players.forEach((p,i)=>{
+    div.innerHTML+=`
+    <div class="player ${i===game.currentTurn?'active':''}" style="background:${p.color}">
+      <span>${p.name}</span>
+      <span>${p.time}s</span>
+    </div>`;
+  });
+
+  status.innerText="Turn: "+game.players[game.currentTurn].name;
+}
+
+// 🎤 audio
+function startAudio(){
+  navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
+    const ctx=new AudioContext();
+    const mic=ctx.createMediaStreamSource(stream);
+    const analyser=ctx.createAnalyser();
+
+    mic.connect(analyser);
+    analyser.fftSize=256;
+
+    const data=new Uint8Array(analyser.frequencyBinCount);
+
+    function loop(){
+      analyser.getByteFrequencyData(data);
+      let v=data.reduce((a,b)=>a+b)/data.length;
+
+      if(v>90) nextTurn();
+
+      requestAnimationFrame(loop);
+    }
+    loop();
+  });
+}
+
+// 🔑 utils
+function genId(){ return Math.random().toString(36).substring(2,8); }
+function randColor(){ return "#"+Math.floor(Math.random()*16777215).toString(16); }
+
 </script>
+
 </body>
 </html>
