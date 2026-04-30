@@ -246,6 +246,35 @@ body { background: #0f0f13; color: #fff; font-family: 'Sarabun', sans-serif; min
 .adm-mob-next { background:#fff; color:#000; }
 .adm-mob-next:hover:not(:disabled) { background:#e0e0e0; }
 
+
+/* SUMMARY */
+#screen-summary { display:flex; flex-direction:column; align-items:center; min-height:100vh; padding-bottom:60px; }
+.sum-header { text-align:center; padding:48px 24px 24px; }
+.sum-eye { font-size:11px; letter-spacing:6px; color:rgba(255,255,255,0.3); text-transform:uppercase; margin-bottom:8px; }
+.sum-title { font-family:"Bebas Neue",sans-serif; font-size:72px; letter-spacing:5px; line-height:1; margin-bottom:4px; }
+.sum-sub { font-size:12px; color:rgba(255,255,255,0.35); letter-spacing:3px; text-transform:uppercase; }
+.sum-total-box { width:calc(100% - 48px); max-width:632px; margin:20px auto 0; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:20px 24px; display:flex; justify-content:space-between; align-items:center; }
+.sum-total-lbl { font-size:11px; color:rgba(255,255,255,0.4); letter-spacing:3px; text-transform:uppercase; }
+.sum-total-val { font-family:"Bebas Neue",sans-serif; font-size:52px; letter-spacing:-1px; color:#fff; }
+.sum-section { width:calc(100% - 48px); max-width:632px; margin:24px auto 0; }
+.sum-sec-lbl { font-size:10px; letter-spacing:4px; color:rgba(255,255,255,0.3); text-transform:uppercase; font-weight:700; margin-bottom:10px; }
+.sum-player-row { display:flex; align-items:center; gap:12px; padding:14px 16px; background:rgba(0,0,0,0.22); border:1px solid rgba(255,255,255,0.07); border-left:4px solid; border-radius:4px; margin-bottom:8px; }
+.sum-rank { font-family:"Bebas Neue",sans-serif; font-size:26px; color:rgba(255,255,255,0.2); width:28px; flex-shrink:0; }
+.sum-dot { width:12px; height:12px; border-radius:50%; flex-shrink:0; }
+.sum-name { flex:1; font-size:16px; font-weight:700; }
+.sum-detail { text-align:right; }
+.sum-time { font-family:"Bebas Neue",sans-serif; font-size:28px; letter-spacing:1px; line-height:1; }
+.sum-revert { font-size:10px; color:rgba(180,180,255,0.7); letter-spacing:1px; margin-top:2px; }
+.sum-bar-wrap { width:80px; height:4px; background:rgba(255,255,255,0.07); border-radius:2px; overflow:hidden; margin-top:4px; }
+.sum-bar { height:100%; border-radius:2px; }
+.sum-play-again { width:calc(100% - 48px); max-width:592px; margin:32px auto 0; display:block; padding:18px; background:#fff; color:#000; border:none; border-radius:4px; font-family:"Sarabun",sans-serif; font-size:16px; font-weight:800; cursor:pointer; letter-spacing:1px; }
+.sum-play-again:hover { background:#e0e0e0; }
+.round-count-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.round-count-btn { height:40px; min-width:40px; padding:0 12px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.45); border-radius:4px; cursor:pointer; font-size:15px; font-weight:700; font-family:"Sarabun",sans-serif; transition:all .14s; }
+.round-count-btn.on { border-color:#fff; background:#fff; color:#000; }
+.round-count-btn:hover:not(.on) { border-color:rgba(255,255,255,0.4); color:#fff; }
+.round-unlimited { font-size:12px; color:rgba(255,255,255,0.35); margin-left:8px; }
+
 /* OBSERVER */
 #screen-observer { display:flex; flex-direction:column; align-items:center; }
 .obs-badge { background:rgba(0,0,0,0.25); border:1px solid rgba(255,150,100,0.4); color:#ff9060; padding:6px 16px; border-radius:20px; font-size:10px; font-weight:700; letter-spacing:3px; text-transform:uppercase; margin-top:14px; }
@@ -261,7 +290,7 @@ body { background: #0f0f13; color: #fff; font-family: 'Sarabun', sans-serif; min
   <div class="home-eye">⬡ Board Game</div>
   <div class="home-title">TIMER</div>
   <div class="home-sub">Real-Time · Patch 1.2</div>
-  <button class="home-btn btn-white" onclick="showSetup()">🎮 สร้างเกมใหม่</button>
+  <button class="home-btn btn-white" onclick="show('screen-ctrl-pick')">🎮 สร้างเกมใหม่</button>
   <div class="divider">— หรือ —</div>
   <div class="join-row">
     <input class="join-input" id="join-code-input" maxlength="6" placeholder="รหัส 6 ตัว" oninput="this.value=this.value.toUpperCase()"/>
@@ -280,10 +309,40 @@ body { background: #0f0f13; color: #fff; font-family: 'Sarabun', sans-serif; min
       <button class="mode-btn on" id="mode-turn" onclick="setGameMode('turn')"><span class="mi">🔄</span><span class="mt">Turn Mode</span><span class="md">วนซ้ำไม่มีสิ้นสุด</span></button>
       <button class="mode-btn" id="mode-round" onclick="setGameMode('round')"><span class="mi">🔃</span><span class="mt">Round Mode</span><span class="md">Pass ได้ · ทุกคน Pass → Admin Turn</span></button>
     </div>
-    <div class="sec-lbl">โหมดควบคุม</div>
-    <div class="mode-row">
-      <button class="mode-btn on" id="ctrl-remote" onclick="setCtrlMode('remote')"><span class="mi">📷</span><span class="mt">Remote Mode</span><span class="md">Volume Up 1×=จบเทิร์น · 2×เร็ว=Pass</span></button>
-      <button class="mode-btn" id="ctrl-mobile" onclick="setCtrlMode('mobile')"><span class="mi">📱</span><span class="mt">Self Mobile Mode</span><span class="md">แต่ละคนกดเองจากมือถือ</span></button>
+    <div style="display:flex;align-items:center;gap:8px;padding:12px 0 0;margin-top:24px;border-top:1px solid rgba(255,255,255,0.07);">
+      <div id="ctrl-mode-badge" style="font-size:10px;letter-spacing:3px;color:rgba(255,255,255,0.3);text-transform:uppercase;font-weight:700;"></div>
+    </div>
+    <div id="round-count-section" class="hidden">
+      <div class="sec-lbl">จำนวน Round</div>
+      <div class="round-count-row" id="round-count-row"></div>
+    </div>
+    <div class="sec-lbl">ตัวเลือกเพิ่มเติม</div>
+    <div onclick="toggleAnnounce()" id="announce-toggle-row" style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:4px;cursor:pointer;transition:all .15s;user-select:none;">
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:700;color:#fff;">📢 ประกาศชื่อผู้เล่นเมื่อเปลี่ยนเทิร์น</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:3px;">ระบบจะอ่านออกเสียง "เทิร์นของ [ชื่อ]" ทุกครั้งที่เปลี่ยนเทิร์น</div>
+      </div>
+      <div id="announce-toggle-knob" style="width:44px;height:26px;border-radius:13px;background:#2F855A;position:relative;transition:background .2s;flex-shrink:0;">
+        <div style="width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:3px;right:3px;transition:right .2s;"></div>
+      </div>
+    </div>
+    <div onclick="toggleReorder()" id="reorder-toggle-row" style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:4px;cursor:pointer;transition:all .15s;user-select:none;margin-top:8px;">
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:700;color:#fff;">🎯 เรียงลำดับเทิร์นใหม่ตอนจบ Round</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:3px;">เปิดให้ Admin ลากเรียงลำดับผู้เล่นใหม่ใน Admin Turn ทุก Round</div>
+      </div>
+      <div id="reorder-toggle-knob" style="width:44px;height:26px;border-radius:13px;background:#2F855A;position:relative;transition:background .2s;flex-shrink:0;">
+        <div style="width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:3px;right:3px;transition:right .2s;"></div>
+      </div>
+    </div>
+    <div onclick="toggleTimeReminder()" id="reminder-toggle-row" style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:4px;cursor:pointer;transition:all .15s;user-select:none;margin-top:8px;">
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:700;color:#fff;">⏰ แจ้งเตือนเวลาทุก 1 นาที</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:3px;">อ่านออกเสียงเวลาที่ใช้ไปทุก 1 นาทีในแต่ละเทิร์น</div>
+      </div>
+      <div id="reminder-toggle-knob" style="width:44px;height:26px;border-radius:13px;background:#2F855A;position:relative;transition:background .2s;flex-shrink:0;">
+        <div style="width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:3px;right:3px;transition:right .2s;"></div>
+      </div>
     </div>
     <div class="sec-lbl">ผู้เล่น (ตั้งค่าเริ่มต้น)</div>
     <div class="player-list" id="player-list"></div>
@@ -385,7 +444,7 @@ body { background: #0f0f13; color: #fff; font-family: 'Sarabun', sans-serif; min
       <div class="cust-color-lbl">เลือกสี</div>
       <div class="cust-cdots" id="cust-cdots"></div>
     </div>
-    <button class="cust-join-btn" onclick="joinAsSeat()">เข้าร่วมเกม →</button>
+    <button class="cust-join-btn" onclick="joinAsSeat()"><span id="cust-join-btn-lbl">เข้าร่วมเกม →</span></button>
   </div>
 </div>
 
@@ -515,10 +574,13 @@ const fresh = ()=>({
   prevIdx:-1, prevTurnTime:0, revertExpiry:0,
   takenSeats:{},   // {seatIdx: {name, cv, cl, cn, cb}}
   revertLog:{},    // {seatIdx: count}
+  totalRevertLog:{}, // cumulative across all rounds
   pendingAction:null,
+  totalRounds:0,   // 0 = unlimited
+  allRoundsDone:false,
 });
 let S = fresh();
-let playerCount=6, selectedGameMode="turn", selectedCtrlMode="remote";
+let playerCount=6, selectedGameMode="turn", selectedCtrlMode="remote", selectedTotalRounds=0, announceEnabled=true, reorderEnabled=true, timeReminderEnabled=true;
 let roomCode=null, isHost=false;
 let myPlayerIdx=-1, myRole=""; // "player"|"admin"
 let selectedSeat=-1, custColor=COLORS[0];
@@ -530,14 +592,29 @@ let dragSrcIdx=null, lastVolUp=0;
 // ── HELPERS ────────────────────────────
 const fmt=s=>`${Math.floor(s/60).toString().padStart(2,"0")}:${(s%60).toString().padStart(2,"0")}`;
 const randCode=()=>{const c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";return Array.from({length:6},()=>c[Math.floor(Math.random()*c.length)]).join("");};
-const SCREENS=["screen-loading","screen-home","screen-setup","screen-timer","screen-admin",
+const SCREENS=["screen-loading","screen-home","screen-ctrl-pick","screen-setup","screen-timer","screen-admin",
                "screen-lobby","screen-seat","screen-customize","screen-waiting",
-               "screen-player","screen-admin-mobile","screen-observer"];
+               "screen-player","screen-admin-mobile","screen-observer","screen-host-seat","screen-summary"];
 window.show=id=>SCREENS.forEach(s=>document.getElementById(s).classList.toggle("hidden",s!==id));
 const $=id=>document.getElementById(id);
 const setBg=c=>{ document.body.style.background=c?c.bg:"#0f0f13"; };
 const setAdminBg=()=>{ document.body.style.background="#1a1030"; };
 
+
+// ── ANNOUNCE ───────────────────────────
+function announceRaw(text){
+  if(!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = "th-TH";
+  utter.rate = 0.95;
+  utter.pitch = 1.05;
+  window.speechSynthesis.speak(utter);
+}
+function announce(name){
+  if(!S.announceEnabled) return;
+  announceRaw(`เทิร์นของ ${name}`);
+}
 // ── FIREBASE ───────────────────────────
 async function pushState(){
   if(!roomCode||!isHost) return;
@@ -562,7 +639,15 @@ function clearAll(){
   clearInterval(revertCountdown); clearInterval(revertBarInt);
   if(obsUnsubscribe){ obsUnsubscribe(); obsUnsubscribe=null; }
 }
-window.showSetup=function(){ show("screen-setup"); renderCountBtns(); renderPlayers(); };
+window.pickCtrlAndSetup=function(mode){
+  selectedCtrlMode=mode;
+  showSetup();
+};
+window.showSetup=function(){
+  show("screen-setup"); renderCountBtns(); renderPlayers();
+  const badge=document.getElementById("ctrl-mode-badge");
+  if(badge) badge.textContent=selectedCtrlMode==="remote"?"📷 Remote Mode":"📱 Self Mobile Mode";
+};
 
 // ── SETUP ──────────────────────────────
 function renderCountBtns(){
@@ -589,20 +674,117 @@ function renderPlayers(){
   window._S=S;
 }
 window.setPC=(i,v)=>{S.players[i].color=COLORS.find(c=>c.value===v);renderPlayers();};
-window.setGameMode=m=>{selectedGameMode=m;$("mode-turn").classList.toggle("on",m==="turn");$("mode-round").classList.toggle("on",m==="round");};
+window.setGameMode=m=>{
+  selectedGameMode=m;
+  $("mode-turn").classList.toggle("on",m==="turn");
+  $("mode-round").classList.toggle("on",m==="round");
+  $("round-count-section").classList.toggle("hidden",m!=="round");
+  if(m==="round") renderRoundCountBtns();
+};
+window.setTotalRounds=function(n){
+  selectedTotalRounds=n; renderRoundCountBtns();
+};
+window.toggleTimeReminder=function(){
+  timeReminderEnabled=!timeReminderEnabled;
+  const knob=document.getElementById("reminder-toggle-knob");
+  const row=document.getElementById("reminder-toggle-row");
+  if(knob){
+    knob.style.background=timeReminderEnabled?"#2F855A":"rgba(255,255,255,0.12)";
+    knob.querySelector("div").style.right=timeReminderEnabled?"3px":"21px";
+  }
+  if(row) row.style.borderColor=timeReminderEnabled?"rgba(47,133,90,0.5)":"rgba(255,255,255,0.1)";
+};
+window.toggleReorder=function(){
+  reorderEnabled=!reorderEnabled;
+  const knob=document.getElementById("reorder-toggle-knob");
+  const row=document.getElementById("reorder-toggle-row");
+  if(knob){
+    knob.style.background=reorderEnabled?"#2F855A":"rgba(255,255,255,0.12)";
+    knob.querySelector("div").style.right=reorderEnabled?"3px":"21px";
+  }
+  if(row) row.style.borderColor=reorderEnabled?"rgba(47,133,90,0.5)":"rgba(255,255,255,0.1)";
+};
+window.toggleAnnounce=function(){
+  announceEnabled=!announceEnabled;
+  const knob=document.getElementById("announce-toggle-knob");
+  const row=document.getElementById("announce-toggle-row");
+  if(knob){
+    knob.style.background=announceEnabled?"#2F855A":"rgba(255,255,255,0.12)";
+    knob.querySelector("div").style.right=announceEnabled?"3px":"21px";
+  }
+  if(row) row.style.borderColor=announceEnabled?"rgba(47,133,90,0.5)":"rgba(255,255,255,0.1)";
+};
+function renderRoundCountBtns(){
+  const row=$("round-count-row"); if(!row) return; row.innerHTML="";
+  [1,2,3,4,5,6,7,8,10].forEach(n=>{
+    const b=document.createElement("button");
+    b.className="round-count-btn"+(selectedTotalRounds===n?" on":"");
+    b.textContent=n+" Round"; b.onclick=()=>setTotalRounds(n); row.appendChild(b);
+  });
+  const bUnlim=document.createElement("button");
+  bUnlim.className="round-count-btn"+(selectedTotalRounds===0?" on":"");
+  bUnlim.textContent="∞ ไม่จำกัด"; bUnlim.onclick=()=>setTotalRounds(0); row.appendChild(bUnlim);
+};
 window.setCtrlMode=m=>{selectedCtrlMode=m;$("ctrl-remote").classList.toggle("on",m==="remote");$("ctrl-mobile").classList.toggle("on",m==="mobile");};
 
 // ── START GAME ─────────────────────────
+window.renderHostSeatPick=function(){
+  const list=document.getElementById('host-seat-list'); if(!list) return;
+  list.innerHTML='';
+  S.players.forEach((p,i)=>{
+    const item=document.createElement('div');
+    item.className='seat-item';
+    item.style.borderLeftColor=p.color.value;
+    item.innerHTML=`<div class="seat-dot" style="background:${p.color.value}"></div><div class="seat-name">Seat ${i+1} — ${p.name}</div>`;
+    item.onclick=()=>hostPickSeat(i,p);
+    list.appendChild(item);
+  });
+};
+window.hostPickSeat=function(idx,p){
+  selectedSeat=idx; custColor=p.color;
+  document.getElementById('cust-seat-num').textContent=idx+1;
+  document.getElementById('cust-name-inp').value=p.name;
+  const cdots=document.getElementById('cust-cdots'); cdots.innerHTML='';
+  COLORS.forEach(c=>{
+    const d=document.createElement('div');
+    d.className=`cust-cdot ${c.value===custColor.value?'sel':''}`;
+    d.style.background=c.value; d.title=c.name;
+    d.onclick=()=>{custColor=c;document.querySelectorAll('.cust-cdot').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');};
+    cdots.appendChild(d);
+  });
+  // override join button for host
+  document.getElementById('cust-join-btn-lbl').textContent='เลือก Seat นี้ →';
+  window._custJoinFn='host';
+  show('screen-customize');
+};
+window.hostSkipSeat=function(){
+  myPlayerIdx=-1; myRole='admin';
+  show('screen-timer'); renderTimer(); listenForPlayerActions();
+};
+window.joinAsSeatHost=async function(){
+  const name=document.getElementById('cust-name-inp').value.trim();
+  if(!name){alert('กรุณาใส่ชื่อ');return;}
+  S.players[selectedSeat].name=name; S.players[selectedSeat].color=custColor;
+  await update(ref(db,`rooms/${roomCode}/takenSeats/${selectedSeat}`),{name,cv:custColor.value,cl:custColor.light,cn:custColor.name,cb:custColor.bg});
+  myPlayerIdx=selectedSeat; myRole='both'; // admin + player
+  await pushState();
+  show('screen-timer'); renderTimer(); listenForPlayerActions();
+};
 window.startGame=async function(){
   roomCode=randCode(); isHost=true;
   S.mode=selectedGameMode; S.ctrlMode=selectedCtrlMode;
   S.currentIdx=0; S.round=1; S.running=false; S.started=false;
   S.passedInRound=[]; S.phase="game"; S.adminTime=0; S.adminRunning=false;
   S.nextRoundOrder=[]; S.prevIdx=-1; S.prevTurnTime=0; S.revertExpiry=0;
-  S.takenSeats={}; S.revertLog={}; S.pendingAction=null;
+  S.takenSeats={}; S.revertLog={}; S.totalRevertLog={}; S.pendingAction=null; S.allRoundsDone=false; S.announceEnabled=announceEnabled; S.reorderEnabled=reorderEnabled; S.timeReminderEnabled=timeReminderEnabled;
+  S.totalRounds=selectedTotalRounds;
   S.players=S.players.slice(0,playerCount).map(p=>({...p,totalTime:0,turnTime:0}));
-  await pushState(); show("screen-timer"); renderTimer();
-  if(S.ctrlMode==="mobile") listenForPlayerActions();
+  await pushState();
+  if(S.ctrlMode==="mobile"){
+    show("screen-host-seat"); renderHostSeatPick();
+  } else {
+    show("screen-timer"); renderTimer();
+  }
 };
 
 // ── HOST: LISTEN FOR PLAYER ACTIONS ──────
@@ -672,7 +854,7 @@ window.doEndTurn=function(){
     const next=findNext(S.currentIdx); if(next===-1){goAdmin();return;}
     S.currentIdx=next;
   } else { S.currentIdx=(S.currentIdx+1)%S.players.length; }
-  S.running=true; startTick(); renderTimer(); pushState();
+  S.running=true; announce(S.players[S.currentIdx].name); startTick(); renderTimer(); pushState();
 };
 
 window.doPass=function(){
@@ -684,7 +866,7 @@ window.doPass=function(){
   if(!S.passedInRound.includes(S.currentIdx)) S.passedInRound.push(S.currentIdx);
   if(S.passedInRound.length===S.players.length){goAdmin();return;}
   const next=findNext(S.currentIdx); if(next===-1){goAdmin();return;}
-  S.currentIdx=next; S.running=true; startTick(); renderTimer(); pushState();
+  S.currentIdx=next; S.running=true; announce(S.players[S.currentIdx].name); startTick(); renderTimer(); pushState();
 };
 
 window.doRevert=function(requestingPlayerIdx){
@@ -702,7 +884,7 @@ window.doRevert=function(requestingPlayerIdx){
   S.players[S.prevIdx].totalTime=Math.max(0,S.players[S.prevIdx].totalTime-S.prevTurnTime);
   S.players[S.prevIdx].turnTime=S.prevTurnTime;
   S.currentIdx=S.prevIdx; S.prevIdx=-1; S.prevTurnTime=0; S.revertExpiry=0;
-  S.running=true; startTick(); renderTimer(); pushState();
+  S.running=true; announce(S.players[S.currentIdx].name); startTick(); renderTimer(); pushState();
 };
 
 function findNext(fromIdx){
@@ -715,6 +897,12 @@ function startTick(){
   tickInt=setInterval(()=>{
     if(!S.running)return;
     S.players[S.currentIdx].totalTime++; S.players[S.currentIdx].turnTime++;
+    // Time reminder every 60s of turn time
+    const tt=S.players[S.currentIdx].turnTime;
+    if(S.timeReminderEnabled && tt>0 && tt%60===0){
+      const mins=Math.floor(tt/60);
+      announceRaw(mins===1?"1 นาทีแล้ว":`${mins} นาทีแล้ว`);
+    }
     renderTimer(); pushState();
   },1000);
 }
@@ -724,6 +912,12 @@ function goAdmin(){
   clearInterval(tickInt);
   S.phase="admin"; S.running=false; S.adminTime=0; S.adminRunning=true;
   S.nextRoundOrder=S.players.map((_,i)=>i); S.prevIdx=-1; S.prevTurnTime=0; S.revertExpiry=0;
+  // Accumulate revert log
+  Object.entries(S.revertLog||{}).forEach(([k,v])=>{ S.totalRevertLog[k]=(S.totalRevertLog[k]||0)+v; });
+  // Check if this was the last round
+  if(S.totalRounds>0 && S.round>=S.totalRounds){
+    S.allRoundsDone=true; pushState(); showSummary(); return;
+  }
   pushState(); show("screen-admin"); renderAdmin(); startAdmTick();
 }
 function renderAdmin(){
@@ -731,7 +925,8 @@ function renderAdmin(){
   $("adm-badge").textContent=`ROUND ${S.round} จบแล้ว`;
   $("adm-timer").textContent=fmt(S.adminTime);
   $("adm-pause-btn").textContent=S.adminRunning?"⏸ หยุด":"▶ ต่อ";
-  renderOrderPicker();
+  $("order-section").classList.toggle("hidden",!S.reorderEnabled);
+  if(S.reorderEnabled) renderOrderPicker();
   const sorted=[...S.players].sort((a,b)=>b.totalTime-a.totalTime);
   const maxT=sorted[0]?.totalTime||1;
   $("scoreboard").innerHTML=`<div class="sb-title">สรุปเวลาสะสม — Round ${S.round}</div>`+
@@ -769,11 +964,11 @@ function startAdmTick(){
 window.toggleAdminPause=function(){S.adminRunning=!S.adminRunning;$("adm-pause-btn").textContent=S.adminRunning?"⏸ หยุด":"▶ ต่อ";pushState();};
 window.startNextRound=function(){
   clearInterval(admInt);
-  S.players=S.nextRoundOrder.map(origIdx=>S.players[origIdx]);
+  if(S.reorderEnabled) S.players=S.nextRoundOrder.map(origIdx=>S.players[origIdx]);
   S.phase="game"; S.round++; S.passedInRound=[]; S.currentIdx=0;
   S.running=true; S.adminTime=0; S.adminRunning=false; S.nextRoundOrder=[];
-  S.revertLog={}; S.players=S.players.map(p=>({...p,turnTime:0}));
-  pushState(); show("screen-timer"); renderTimer(); startTick();
+  S.revertLog={}; S.players=S.players.map(p=>({...p,turnTime:0})); S.allRoundsDone=false;
+  pushState(); show("screen-timer"); announce(S.players[0].name); renderTimer(); startTick();
   if(S.ctrlMode==="mobile") listenForPlayerActions();
 };
 
@@ -802,7 +997,7 @@ window.joinRoom=async function(){
 };
 
 // ── LOBBY: PICK ROLE ───────────────────
-window.pickRole=async function(role){
+window.pickRole=async function(role){ window._custJoinFn='player';
   myRole=role;
   if(role==="admin"){
     show("screen-admin-mobile"); listenMobile();
@@ -996,6 +1191,43 @@ window.pmAction=async function(type){
   await set(ref(db,`rooms/${roomCode}/pendingAction`),{type,playerIdx:myPlayerIdx,ts:Date.now()});
 };
 
+
+// ── SUMMARY ────────────────────────────
+function showSummary(){
+  clearInterval(tickInt); clearInterval(admInt);
+  setBg(null); show("screen-summary"); renderSummary();
+}
+function renderSummary(){
+  const totalTime=S.players.reduce((a,p)=>a+p.totalTime,0);
+  const sorted=[...S.players].sort((a,b)=>b.totalTime-a.totalTime);
+  const maxT=sorted[0]?.totalTime||1;
+  const gameLabel=S.totalRounds>0?`${S.totalRounds} Round`:"ไม่จำกัด Round";
+
+  $("sum-rounds-played").textContent=`${S.round} Round · ${gameLabel}`;
+  $("sum-total-time-val").textContent=fmt(totalTime);
+
+  const playerRows=$("sum-player-rows");
+  playerRows.innerHTML=sorted.map((p,i)=>{
+    const revCount=S.totalRevertLog[S.players.indexOf(p)]||0;
+    return `<div class="sum-player-row" style="border-left-color:${p.color.value}">
+      <div class="sum-rank">${i+1}</div>
+      <div class="sum-dot" style="background:${p.color.value}"></div>
+      <div class="sum-name">${p.name}</div>
+      <div>
+        <div class="sum-bar-wrap"><div class="sum-bar" style="width:${(p.totalTime/maxT)*100}%;background:${p.color.value}"></div></div>
+      </div>
+      <div class="sum-detail">
+        <div class="sum-time" style="color:${p.color.light}">${fmt(p.totalTime)}</div>
+        ${revCount>0?`<div class="sum-revert">↩ Revert ${revCount} ครั้ง</div>`:""}
+      </div>
+    </div>`;
+  }).join("");
+
+  // total revert count
+  const totalReverts=Object.values(S.totalRevertLog).reduce((a,b)=>a+b,0);
+  $("sum-total-reverts").textContent=totalReverts>0?`↩ Revert รวมทั้งเกม: ${totalReverts} ครั้ง`:"";
+}
+
 // ── OBSERVER ───────────────────────────
 function listenObs(){
   clearAll();
@@ -1059,5 +1291,71 @@ window.addEventListener("DOMContentLoaded",async()=>{
   if(isHost) listenForPlayerActionsExtended();
 });
 </script>
+
+<!-- CTRL PICK -->
+<div id="screen-ctrl-pick" class="hidden">
+  <div class="top-bar">
+    <button class="ghost-btn" onclick="show('screen-home')">← กลับ</button>
+    <div class="badge">สร้างเกม</div>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;padding:40px 24px 32px;text-align:center;">
+    <div class="home-eye" style="margin-bottom:8px;">เลือกโหมดควบคุม</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:4px;margin-bottom:6px;">CONTROL MODE</div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.3);letter-spacing:2px;text-transform:uppercase;margin-bottom:48px;">เลือกก่อนตั้งค่าเกม · เปลี่ยนไม่ได้ภายหลัง</div>
+    <div class="lobby-role-row" style="max-width:480px;width:100%;">
+      <div class="lobby-role-btn" onclick="pickCtrlAndSetup('remote')" style="padding:28px 16px;">
+        <span class="lobby-role-icon">📷</span>
+        <span class="lobby-role-name">Remote Mode</span>
+        <span class="lobby-role-desc">Volume Up บน tablet<br/>1× จบเทิร์น · 2×เร็ว Pass<br/>คนสร้าง = Admin เท่านั้น</span>
+      </div>
+      <div class="lobby-role-btn" onclick="pickCtrlAndSetup('mobile')" style="padding:28px 16px;">
+        <span class="lobby-role-icon">📱</span>
+        <span class="lobby-role-name">Self Mobile Mode</span>
+        <span class="lobby-role-desc">แต่ละคนกดเองจากมือถือ<br/>คนสร้าง = Admin<br/>เลือก seat เป็นผู้เล่นด้วยได้</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HOST SEAT PICK (Self Mobile - after startGame) -->
+<div id="screen-host-seat" class="hidden">
+  <div class="top-bar">
+    <button class="ghost-btn" onclick="hostSkipSeat()">ข้าม →</button>
+    <div class="badge">เลือก SEAT (ไม่บังคับ)</div>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;padding:32px 24px;text-align:center;">
+    <div class="home-eye" style="margin-bottom:6px;">คุณเป็น Admin แล้ว</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:40px;letter-spacing:4px;margin-bottom:6px;">เล่นด้วยไหม?</div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.3);letter-spacing:2px;margin-bottom:36px;">เลือก seat เพื่อเป็น Admin + ผู้เล่น<br/>หรือกด "ข้าม" เพื่อเป็นแค่ Admin</div>
+    <div class="seat-list" id="host-seat-list" style="width:100%;max-width:380px;"></div>
+    <button onclick="hostSkipSeat()" style="margin-top:20px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);font-family:'Sarabun',sans-serif;font-weight:700;font-size:14px;padding:14px 32px;border-radius:4px;cursor:pointer;letter-spacing:1px;">
+      ไม่เล่น — เป็นแค่ Admin
+    </button>
+  </div>
+</div>
+
+
+<!-- SUMMARY SCREEN -->
+<div id="screen-summary" class="hidden">
+  <div class="sum-header">
+    <div class="sum-eye">⬡ Board Game Timer</div>
+    <div class="sum-title">สรุปผล</div>
+    <div class="sum-sub" id="sum-rounds-played">— Round</div>
+  </div>
+  <div class="sum-total-box">
+    <div>
+      <div class="sum-total-lbl">เวลารวมทั้งเกม</div>
+      <div class="sum-total-val" id="sum-total-time-val">00:00</div>
+    </div>
+    <div style="font-size:40px;">🏆</div>
+  </div>
+  <div class="sum-section">
+    <div class="sum-sec-lbl">เวลาสะสมแต่ละผู้เล่น</div>
+    <div id="sum-player-rows"></div>
+    <div id="sum-total-reverts" style="font-size:12px;color:rgba(180,180,255,0.6);text-align:center;margin-top:12px;letter-spacing:1px;"></div>
+  </div>
+  <button class="sum-play-again" onclick="showHome()">🎮 เล่นใหม่</button>
+</div>
+
 </body>
 </html>
