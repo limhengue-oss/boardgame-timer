@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Board Game Timer v1.3 | Patch 1.3 -->
 <html lang="th">
 <head>
 <meta charset="UTF-8"/>
@@ -300,7 +301,14 @@ body { background: #0f0f13; color: #fff; font-family: 'Sarabun', sans-serif; min
 
 <!-- SETUP (Host/Admin) -->
 <div id="screen-setup" class="hidden">
-  <div class="setup-hdr"><div class="setup-title">ตั้งค่าเกม</div><div class="setup-sub">Board Game Timer · Patch 1.2</div></div>
+  <div class="setup-hdr">
+    <div class="setup-title">ตั้งค่าเกม</div>
+    <div class="setup-sub">Board Game Timer · Patch 1.3</div>
+    <div style="display:inline-flex;align-items:center;gap:10px;margin-top:14px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:6px;padding:8px 18px;">
+      <span style="font-size:10px;letter-spacing:3px;color:rgba(255,255,255,0.35);text-transform:uppercase;">Game ID</span>
+      <span id="setup-game-id" style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:6px;color:#fff;">——————</span>
+    </div>
+  </div>
   <div class="sec">
     <div class="sec-lbl">จำนวนผู้เล่น</div>
     <div class="count-row" id="count-row"></div>
@@ -644,9 +652,13 @@ window.pickCtrlAndSetup=function(mode){
   showSetup();
 };
 window.showSetup=function(){
+  // Generate room code early so it can be shown in setup
+  if(!roomCode){ roomCode=randCode(); isHost=true; }
   show("screen-setup"); renderCountBtns(); renderPlayers();
   const badge=document.getElementById("ctrl-mode-badge");
   if(badge) badge.textContent=selectedCtrlMode==="remote"?"📷 Remote Mode":"📱 Self Mobile Mode";
+  const idEl=document.getElementById("setup-game-id");
+  if(idEl) idEl.textContent=roomCode;
 };
 
 // ── SETUP ──────────────────────────────
@@ -771,7 +783,8 @@ window.joinAsSeatHost=async function(){
   show('screen-timer'); renderTimer(); listenForPlayerActions();
 };
 window.startGame=async function(){
-  roomCode=randCode(); isHost=true;
+  // roomCode already generated in showSetup
+  if(!roomCode){ roomCode=randCode(); isHost=true; }
   S.mode=selectedGameMode; S.ctrlMode=selectedCtrlMode;
   S.currentIdx=0; S.round=1; S.running=false; S.started=false;
   S.passedInRound=[]; S.phase="game"; S.adminTime=0; S.adminRunning=false;
