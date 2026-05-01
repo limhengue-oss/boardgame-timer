@@ -605,7 +605,7 @@ let playerCount=6, selectedGameMode="turn", selectedCtrlMode="remote", selectedT
 let roomCode=null, isHost=false;
 let myPlayerIdx=-1, myRole=""; // "player"|"admin"
 let selectedSeat=-1, custColor=COLORS[0];
-let tickInt=null, admInt=null, remoteInt=null;
+let tickInt=null, admInt=null, remoteInt=null, revertCheckInt=null;
 let obsLT=0, obsLTotal=0, obsUnsubscribe=null;
 let revertCountdown=null, revertBarInt=null;
 let dragSrcIdx=null, lastVolUp=0;
@@ -656,7 +656,7 @@ window.showHome=function(){
   myPlayerIdx=-1; myRole=""; S=fresh(); show("screen-home");
 };
 function clearAll(){
-  clearInterval(tickInt); clearInterval(admInt); clearInterval(remoteInt);
+  clearInterval(tickInt); clearInterval(admInt); clearInterval(remoteInt); clearInterval(revertCheckInt);
   clearInterval(revertCountdown); clearInterval(revertBarInt);
   if(obsUnsubscribe){ obsUnsubscribe(); obsUnsubscribe=null; }
 }
@@ -664,7 +664,7 @@ window.pickCtrlAndSetup=function(mode){
   selectedCtrlMode=mode;
   showSetup();
 };
-window.showSetup=function(){
+window.showSetup=async function(){
   // Generate room code early so it can be shown in setup
   if(!roomCode){ roomCode=randCode(); isHost=true; }
   show("screen-setup"); renderCountBtns(); renderPlayers();
@@ -674,6 +674,12 @@ window.showSetup=function(){
   if(idEl) idEl.textContent=roomCode;
   const urlEl=document.getElementById("setup-join-url");
   if(urlEl) urlEl.textContent=`${location.origin}${location.pathname}?room=${roomCode}`;
+  // Push lobby state so players can join early and see waiting screen
+  await set(ref(db,`rooms/${roomCode}`),{
+    phase:"lobby", ctrlMode:selectedCtrlMode,
+    players:[], takenSeats:{}, started:false,
+    lastUpdated:Date.now()
+  });
 };
 
 // ── SETUP ──────────────────────────────
@@ -834,7 +840,7 @@ function renderTimer(){
   const p=S.players[S.currentIdx]; setBg(p.color);
   const shareUrl=`${location.origin}${location.pathname}?room=${roomCode}`;
   $("share-bar-slot").innerHTML=`<div class="share-bar"><div class="sb-icon">🔗</div><div class="sb-txt"><div class="sb-lbl">รหัสเกม</div><div class="sb-code">${roomCode}</div><div class="sb-url">${shareUrl}</div></div><button class="cp-btn" id="cp-btn" onclick="copyLink('${shareUrl}')">คัดลอก</button></div>`;
-  const modeLabel=S.ctrlMode==="remote"?`<b>Remote Mode</b> · 1×=จบเทิร์น · 2×เร็ว=Pass`:`<b>Self Mobile Mode</b> · แต่ละคนเปิด URL บนมือถือ`;
+  const modeLabel=S.ctrlMode==="remote"?`<b>Remote Mode</b> · กด 1× = จบเทิร์น · กด 2× เร็ว = Pass · กดค้าง = Revert`:`<b>Self Mobile Mode</b> · แต่ละคนเปิด URL บนมือถือ`;
   $("mode-bar-slot").innerHTML=`<div class="mode-bar"><div class="mode-bar-txt">${modeLabel}</div></div>`;
   $("round-badge").textContent=S.mode==="round"?`ROUND ${S.round}`:"TURN MODE";
   const card=$("player-card"); card.style.borderTopColor=p.color.value; card.style.color=p.color.value;
@@ -851,8 +857,8 @@ function renderTimer(){
   if(showCtrls){
     $("pause-btn").textContent=S.running?"⏸ หยุด":"▶ ต่อ";
     $("pass-btn").classList.toggle("hidden",S.mode!=="round");
-    $("revert-btn").classList.toggle("hidden",S.prevIdx===-1);
-    $("vol-hint").textContent="💡 Volume Up 1×=จบเทิร์น · 2×เร็ว=Pass";
+    $("revert-btn").classList.toggle("hidden",S.prevIdx===-1||Date.now()>S.revertExpiry);
+    $("vol-hint").textContent="💡 กด 1× จบเทิร์น · กด 2× Pass · กดค้าง Revert";
   } else { $("vol-hint").textContent=""; }
   renderQueue("q-host");
 }
@@ -882,7 +888,7 @@ window.doEndTurn=function(){
     const next=findNext(S.currentIdx); if(next===-1){goAdmin();return;}
     S.currentIdx=next;
   } else { S.currentIdx=(S.currentIdx+1)%S.players.length; }
-  S.running=true; announce(S.players[S.currentIdx].name); startTick(); renderTimer(); pushState();
+  S.running=true; announce(S.players[S.currentIdx].name); startTick(); startRevertCheck(); renderTimer(); pushState();
 };
 
 window.doPass=function(){
@@ -894,7 +900,7 @@ window.doPass=function(){
   if(!S.passedInRound.includes(S.currentIdx)) S.passedInRound.push(S.currentIdx);
   if(S.passedInRound.length===S.players.length){goAdmin();return;}
   const next=findNext(S.currentIdx); if(next===-1){goAdmin();return;}
-  S.currentIdx=next; S.running=true; announce(S.players[S.currentIdx].name); startTick(); renderTimer(); pushState();
+  S.currentIdx=next; S.running=true; announce(S.players[S.currentIdx].name); startTick(); startRevertCheck(); renderTimer(); pushState();
 };
 
 window.doRevert=function(requestingPlayerIdx){
@@ -912,13 +918,24 @@ window.doRevert=function(requestingPlayerIdx){
   S.players[S.prevIdx].totalTime=Math.max(0,S.players[S.prevIdx].totalTime-S.prevTurnTime);
   S.players[S.prevIdx].turnTime=S.prevTurnTime;
   S.currentIdx=S.prevIdx; S.prevIdx=-1; S.prevTurnTime=0; S.revertExpiry=0;
-  S.running=true; announce(S.players[S.currentIdx].name); startTick(); renderTimer(); pushState();
+  clearInterval(revertCheckInt); S.running=true; announce(S.players[S.currentIdx].name); startTick(); renderTimer(); pushState();
 };
 
 function findNext(fromIdx){
   const total=S.players.length;
   for(let off=1;off<total;off++){const idx=(fromIdx+off)%total;if(!S.passedInRound.includes(idx))return idx;}
   return -1;
+}
+function startRevertCheck(){
+  clearInterval(revertCheckInt);
+  if(S.revertExpiry===0) return;
+  revertCheckInt=setInterval(()=>{
+    if(Date.now()>S.revertExpiry){
+      clearInterval(revertCheckInt);
+      // Re-render to hide revert button now that window expired
+      if(isHost && S.phase==="game") renderTimer();
+    }
+  },500);
 }
 function startTick(){
   clearInterval(tickInt);
@@ -1001,13 +1018,38 @@ window.startNextRound=function(){
 };
 
 // ── REMOTE MODE ────────────────────────
+// 1× tap = End Turn | double tap (<400ms) = Pass | hold (>600ms) = Revert
+let volDownAt=0, volHoldTimer=null, volTapTimer=null, volTapCount=0;
+
 document.addEventListener("keydown",e=>{
   if(!isHost||!S.started||S.phase!=="game"||S.ctrlMode!=="remote") return;
   if(e.key==="AudioVolumeUp"||e.keyCode===175||e.keyCode===448){
+    e.preventDefault(); if(e.repeat) return;
+    volDownAt=Date.now(); volTapCount++;
+    // Start hold timer
+    clearTimeout(volHoldTimer);
+    volHoldTimer=setTimeout(()=>{
+      // Held >600ms = Revert (only if within window)
+      volTapCount=0;
+      clearTimeout(volTapTimer);
+      if(S.prevIdx!==-1 && Date.now()<=S.revertExpiry) doRevert();
+    },600);
+  }
+});
+
+document.addEventListener("keyup",e=>{
+  if(!isHost||!S.started||S.phase!=="game"||S.ctrlMode!=="remote") return;
+  if(e.key==="AudioVolumeUp"||e.keyCode===175||e.keyCode===448){
     e.preventDefault();
-    const now=Date.now();
-    if(now-lastVolUp<400){lastVolUp=0;doPass();}
-    else{lastVolUp=now;setTimeout(()=>{if(Date.now()-lastVolUp>=380)doEndTurn();},400);}
+    const held=Date.now()-volDownAt;
+    clearTimeout(volHoldTimer);
+    if(held>=600) return; // already fired as hold
+    // Short press: wait to see if double tap
+    clearTimeout(volTapTimer);
+    volTapTimer=setTimeout(()=>{
+      if(volTapCount>=2){ volTapCount=0; doPass(); }
+      else { volTapCount=0; doEndTurn(); }
+    },350);
   }
 });
 
@@ -1017,8 +1059,28 @@ window.joinRoom=async function(){
   if(code.length!==6){alert("กรุณากรอกรหัส 6 ตัวอักษร");return;}
   const snap=await get(ref(db,`rooms/${code}`));
   if(!snap.exists()){alert(`ไม่พบห้อง "${code}"`);return;}
-  const data=parseSnap(snap); roomCode=code; isHost=false;
-  if(data.ctrlMode==="mobile"){
+  const data=snap.val(); roomCode=code; isHost=false;
+  // If still in lobby/setup phase — show waiting screen
+  if(data.phase==="lobby"){
+    show("screen-waiting");
+    $("wait-sub").textContent="รอ Admin ตั้งค่าเกมและเริ่มเกม...";
+    $("wait-seats").innerHTML=`<div style="font-size:13px;color:rgba(255,255,255,0.35);text-align:center;padding:20px;">เกมยังไม่เริ่ม รอสักครู่...</div>`;
+    // Poll until game starts
+    const unsub=onValue(ref(db,`rooms/${roomCode}`),s=>{
+      const d=s.val(); if(!d) return;
+      if(d.phase!=="lobby"){
+        unsub();
+        const parsed=parseSnap(s);
+        if(parsed.ctrlMode==="mobile"){
+          $("lobby-room-code").textContent=`รหัสห้อง: ${roomCode}`;
+          show("screen-lobby");
+        } else { show("screen-observer"); listenObs(); }
+      }
+    });
+    return;
+  }
+  const parsed=parseSnap(snap);
+  if(parsed.ctrlMode==="mobile"){
     $("lobby-room-code").textContent=`รหัสห้อง: ${code}`;
     show("screen-lobby");
   } else { show("screen-observer"); listenObs(); }
@@ -1316,11 +1378,29 @@ window.addEventListener("DOMContentLoaded",async()=>{
   if(room){
     const snap=await get(ref(db,`rooms/${room}`));
     if(snap.exists()){
-      const data=parseSnap(snap); roomCode=room; isHost=false;
-      if(data.ctrlMode==="mobile"){
-        $("lobby-room-code").textContent=`รหัสห้อง: ${room}`;
-        show("screen-lobby");
-      } else { show("screen-observer"); listenObs(); }
+      const raw=snap.val(); roomCode=room; isHost=false;
+      if(raw.phase==="lobby"){
+        show("screen-waiting");
+        $("wait-sub").textContent="รอ Admin ตั้งค่าเกมและเริ่มเกม...";
+        $("wait-seats").innerHTML=`<div style="font-size:13px;color:rgba(255,255,255,0.35);text-align:center;padding:20px;">เกมยังไม่เริ่ม รอสักครู่...</div>`;
+        const unsub=onValue(ref(db,`rooms/${roomCode}`),s=>{
+          const d=s.val(); if(!d) return;
+          if(d.phase!=="lobby"){
+            unsub();
+            const parsed=parseSnap(s);
+            if(parsed.ctrlMode==="mobile"){
+              $("lobby-room-code").textContent=`รหัสห้อง: ${roomCode}`;
+              show("screen-lobby");
+            } else { show("screen-observer"); listenObs(); }
+          }
+        });
+      } else {
+        const parsed=parseSnap(snap);
+        if(parsed.ctrlMode==="mobile"){
+          $("lobby-room-code").textContent=`รหัสห้อง: ${room}`;
+          show("screen-lobby");
+        } else { show("screen-observer"); listenObs(); }
+      }
     } else show("screen-home");
   } else show("screen-home");
   // patch listenForPlayerActions to extended
@@ -1342,7 +1422,7 @@ window.addEventListener("DOMContentLoaded",async()=>{
       <div class="lobby-role-btn" onclick="pickCtrlAndSetup('remote')" style="padding:28px 16px;">
         <span class="lobby-role-icon">📷</span>
         <span class="lobby-role-name">Remote Mode</span>
-        <span class="lobby-role-desc">Volume Up บน tablet<br/>1× จบเทิร์น · 2×เร็ว Pass<br/>คนสร้าง = Admin เท่านั้น</span>
+        <span class="lobby-role-desc">Volume Up บน tablet<br/>1× จบเทิร์น · 2×เร็ว Pass · ค้าง Revert<br/>คนสร้าง = Admin เท่านั้น</span>
       </div>
       <div class="lobby-role-btn" onclick="pickCtrlAndSetup('mobile')" style="padding:28px 16px;">
         <span class="lobby-role-icon">📱</span>
