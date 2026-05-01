@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Board Game Timer v1.3 | Patch 1.3 -->
 <html lang="th">
 <head>
 <meta charset="UTF-8"/>
@@ -300,7 +301,27 @@ body { background: #0f0f13; color: #fff; font-family: 'Sarabun', sans-serif; min
 
 <!-- SETUP (Host/Admin) -->
 <div id="screen-setup" class="hidden">
-  <div class="setup-hdr"><div class="setup-title">ตั้งค่าเกม</div><div class="setup-sub">Board Game Timer · Patch 1.2</div></div>
+  <div class="setup-hdr">
+    <div class="setup-title">ตั้งค่าเกม</div>
+    <div class="setup-sub">Board Game Timer · Patch 1.3</div>
+    <div style="margin-top:16px;width:100%;max-width:480px;margin-left:auto;margin-right:auto;">
+      <!-- Game ID row -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;">
+        <span style="font-size:10px;letter-spacing:3px;color:rgba(255,255,255,0.35);text-transform:uppercase;">Game ID</span>
+        <span id="setup-game-id" style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:8px;color:#fff;">——————</span>
+      </div>
+      <!-- Join link row -->
+      <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:10px 14px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:9px;letter-spacing:3px;color:rgba(255,255,255,0.3);text-transform:uppercase;margin-bottom:3px;">ลิงก์เข้าร่วมเกม</div>
+          <div id="setup-join-url" style="font-size:12px;color:rgba(255,255,255,0.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+        </div>
+        <button id="setup-copy-btn" onclick="copySetupLink()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.18);color:rgba(255,255,255,0.75);font-family:'Sarabun',sans-serif;font-weight:700;font-size:12px;padding:8px 14px;border-radius:4px;cursor:pointer;transition:all .15s;flex-shrink:0;letter-spacing:.5px;">
+          🔗 คัดลอก
+        </button>
+      </div>
+    </div>
+  </div>
   <div class="sec">
     <div class="sec-lbl">จำนวนผู้เล่น</div>
     <div class="count-row" id="count-row"></div>
@@ -644,9 +665,15 @@ window.pickCtrlAndSetup=function(mode){
   showSetup();
 };
 window.showSetup=function(){
+  // Generate room code early so it can be shown in setup
+  if(!roomCode){ roomCode=randCode(); isHost=true; }
   show("screen-setup"); renderCountBtns(); renderPlayers();
   const badge=document.getElementById("ctrl-mode-badge");
   if(badge) badge.textContent=selectedCtrlMode==="remote"?"📷 Remote Mode":"📱 Self Mobile Mode";
+  const idEl=document.getElementById("setup-game-id");
+  if(idEl) idEl.textContent=roomCode;
+  const urlEl=document.getElementById("setup-join-url");
+  if(urlEl) urlEl.textContent=`${location.origin}${location.pathname}?room=${roomCode}`;
 };
 
 // ── SETUP ──────────────────────────────
@@ -771,7 +798,8 @@ window.joinAsSeatHost=async function(){
   show('screen-timer'); renderTimer(); listenForPlayerActions();
 };
 window.startGame=async function(){
-  roomCode=randCode(); isHost=true;
+  // roomCode already generated in showSetup
+  if(!roomCode){ roomCode=randCode(); isHost=true; }
   S.mode=selectedGameMode; S.ctrlMode=selectedCtrlMode;
   S.currentIdx=0; S.round=1; S.running=false; S.started=false;
   S.passedInRound=[]; S.phase="game"; S.adminTime=0; S.adminRunning=false;
@@ -1264,6 +1292,14 @@ window.confirmReset=function(){
   if(confirm("รีเซ็ตเกมและกลับหน้าแรก?")){
     clearAll(); set(ref(db,`rooms/${roomCode}`),null); showHome();
   }
+};
+window.copySetupLink=function(){
+  const url=`${location.origin}${location.pathname}?room=${roomCode}`;
+  navigator.clipboard.writeText(url).then(()=>{
+    const b=document.getElementById("setup-copy-btn"); if(!b) return;
+    b.textContent="✓ คัดลอกแล้ว"; b.style.borderColor="#2ed573"; b.style.color="#2ed573";
+    setTimeout(()=>{ b.textContent="🔗 คัดลอก"; b.style.borderColor=""; b.style.color=""; },2000);
+  });
 };
 window.copyLink=function(url){
   navigator.clipboard.writeText(url).then(()=>{
