@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Board Game Timer v1.3 | Patch 1.3 -->
+<!-- Board Game Timer v1.3.1 | Patch 1.3.1 -->
 <html lang="th">
 <head>
 <meta charset="UTF-8"/>
@@ -333,7 +333,7 @@ body { background: #0f0f13; color: #fff; font-family: 'Sarabun', sans-serif; min
 <div id="screen-home" class="hidden">
   <div class="home-eye">⬡ Board Game</div>
   <div class="home-title">TIMER</div>
-  <div class="home-sub">Real-Time · Patch 1.2</div>
+  <div class="home-sub">Real-Time · Patch 1.3.1</div>
   <button class="home-btn btn-white" onclick="show('screen-ctrl-pick')">🎮 สร้างเกมใหม่</button>
   <div class="divider">— หรือ —</div>
   <div class="join-row">
@@ -346,7 +346,7 @@ body { background: #0f0f13; color: #fff; font-family: 'Sarabun', sans-serif; min
 <div id="screen-setup" class="hidden">
   <div class="setup-hdr">
     <div class="setup-title">ตั้งค่าเกม</div>
-    <div class="setup-sub">Board Game Timer · Patch 1.3</div>
+    <div class="setup-sub">Board Game Timer · Patch 1.3.1</div>
     <div style="margin-top:16px;width:100%;max-width:480px;margin-left:auto;margin-right:auto;">
       <!-- Game ID row -->
       <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;">
@@ -845,7 +845,7 @@ window.joinAsSeatHost=async function(){
   await update(ref(db,`rooms/${roomCode}/takenSeats/${selectedSeat}`),{name,cv:custColor.value,cl:custColor.light,cn:custColor.name,cb:custColor.bg});
   myPlayerIdx=selectedSeat; myRole='both'; // admin + player
   await pushState();
-  // Host stays on tablet - has full admin control + is a player
+  // Host stays on tablet - myRole='both' means admin+player
   show('screen-timer'); renderTimer(); listenForPlayerActions();
 };
 window.startGame=async function(){
@@ -1226,11 +1226,11 @@ function selectSeat(idx,p){
 }
 
 window.joinAsSeat=async function(){
+  // Route to host flow or player flow
+  if(window._custJoinFn==="host"){ await joinAsSeatHost(); return; }
   const name=$("cust-name-inp").value.trim();
   if(!name){alert("กรุณาใส่ชื่อ");return;}
-  // claim seat in firebase
   await update(ref(db,`rooms/${roomCode}/takenSeats/${selectedSeat}`),{name,cv:custColor.value,cl:custColor.light,cn:custColor.name,cb:custColor.bg});
-  // update player name/color in state via pendingAction
   await set(ref(db,`rooms/${roomCode}/pendingAction`),{type:"claimSeat",seatIdx:selectedSeat,name,cv:custColor.value,cl:custColor.light,cn:custColor.name,cb:custColor.bg,ts:Date.now()});
   myPlayerIdx=selectedSeat;
   show("screen-player"); listenMobile();
