@@ -248,6 +248,49 @@ body { background: #0f0f13; color: #fff; font-family: 'Sarabun', sans-serif; min
 .adm-mob-next:hover:not(:disabled) { background:#e0e0e0; }
 
 
+
+/* FULLSCREEN MODE */
+#screen-fullscreen {
+  position: fixed; inset: 0; z-index: 999;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  transition: background 0.4s ease;
+}
+.fs-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(72px, 18vw, 160px);
+  letter-spacing: 6px; line-height: 1;
+  color: #fff; text-align: center;
+  text-shadow: 0 4px 40px rgba(0,0,0,0.5);
+  margin-bottom: 12px; padding: 0 24px;
+}
+.fs-status {
+  font-size: 13px; letter-spacing: 5px; text-transform: uppercase;
+  color: rgba(255,255,255,0.5); margin-bottom: 64px; font-weight: 700;
+}
+.fs-btns {
+  display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+  padding: 0 24px;
+}
+.fs-btn {
+  padding: 16px 28px; border-radius: 6px; border: none;
+  font-family: 'Sarabun', sans-serif; font-weight: 800; font-size: 16px;
+  cursor: pointer; transition: all .15s; letter-spacing: .5px;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.fs-btn-end   { background: rgba(255,255,255,0.95); color: #000; }
+.fs-btn-end:hover { background: #fff; }
+.fs-btn-pause { background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
+.fs-btn-pause:hover { background: rgba(255,255,255,0.22); }
+.fs-btn-pass  { background: rgba(255,80,80,0.15); color: rgba(255,160,160,0.95); border: 1px solid rgba(255,100,100,0.3); }
+.fs-btn-pass:hover { background: rgba(255,80,80,0.28); }
+.fs-btn-exit  { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.1); font-size: 13px; padding: 14px 20px; }
+.fs-btn-exit:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.3); }
+.fs-turn-time {
+  font-family: 'Bebas Neue', sans-serif; font-size: 32px;
+  letter-spacing: 3px; color: rgba(255,255,255,0.4); margin-bottom: 48px;
+}
+
 /* SUMMARY */
 #screen-summary { display:flex; flex-direction:column; align-items:center; min-height:100vh; padding-bottom:60px; }
 .sum-header { text-align:center; padding:48px 24px 24px; }
@@ -376,6 +419,7 @@ body { background: #0f0f13; color: #fff; font-family: 'Sarabun', sans-serif; min
   <div class="top-bar">
     <button class="ghost-btn" onclick="confirmReset()">← รีเซ็ต</button>
     <div class="badge" id="round-badge">TURN MODE</div>
+    <button class="ghost-btn" onclick="enterFullscreen()" id="fs-toggle-btn">⤢ เต็มจอ</button>
   </div>
   <div id="share-bar-slot"></div>
   <div id="mode-bar-slot"></div>
@@ -601,7 +645,7 @@ const fresh = ()=>({
   allRoundsDone:false,
 });
 let S = fresh();
-let playerCount=6, selectedGameMode="turn", selectedCtrlMode="remote", selectedTotalRounds=0, announceEnabled=true, reorderEnabled=true, timeReminderEnabled=true;
+let playerCount=4, selectedGameMode="turn", selectedCtrlMode="remote", selectedTotalRounds=0, announceEnabled=true, reorderEnabled=true, timeReminderEnabled=true;
 let roomCode=null, isHost=false;
 let myPlayerIdx=-1, myRole=""; // "player"|"admin"
 let selectedSeat=-1, custColor=COLORS[0];
@@ -615,7 +659,7 @@ const fmt=s=>`${Math.floor(s/60).toString().padStart(2,"0")}:${(s%60).toString()
 const randCode=()=>{const c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";return Array.from({length:6},()=>c[Math.floor(Math.random()*c.length)]).join("");};
 const SCREENS=["screen-loading","screen-home","screen-ctrl-pick","screen-setup","screen-timer","screen-admin",
                "screen-lobby","screen-seat","screen-customize","screen-waiting",
-               "screen-player","screen-admin-mobile","screen-observer","screen-host-seat","screen-summary"];
+               "screen-player","screen-admin-mobile","screen-observer","screen-host-seat","screen-summary","screen-fullscreen"];
 window.show=id=>SCREENS.forEach(s=>document.getElementById(s).classList.toggle("hidden",s!==id));
 const $=id=>document.getElementById(id);
 const setBg=c=>{ document.body.style.background=c?c.bg:"#0f0f13"; };
@@ -685,7 +729,7 @@ window.showSetup=async function(){
 // ── SETUP ──────────────────────────────
 function renderCountBtns(){
   const row=$("count-row"); row.innerHTML="";
-  [3,4,5,6,7,8,9,10].forEach(n=>{
+  [2,3,4,5,6,7,8,9,10].forEach(n=>{
     const b=document.createElement("button");
     b.className="count-btn"+(n===playerCount?" on":"");
     b.textContent=n;
@@ -801,6 +845,7 @@ window.joinAsSeatHost=async function(){
   await update(ref(db,`rooms/${roomCode}/takenSeats/${selectedSeat}`),{name,cv:custColor.value,cl:custColor.light,cn:custColor.name,cb:custColor.bg});
   myPlayerIdx=selectedSeat; myRole='both'; // admin + player
   await pushState();
+  // Host stays on tablet - has full admin control + is a player
   show('screen-timer'); renderTimer(); listenForPlayerActions();
 };
 window.startGame=async function(){
@@ -827,11 +872,22 @@ function listenForPlayerActions(){
     const action=snap.val();
     if(!action||!action.type) return;
     set(ref(db,`rooms/${roomCode}/pendingAction`),null);
+    // If host-as-player sent this action for themselves, ignore (they control directly)
+    if(myRole==="both" && action.playerIdx===myPlayerIdx) return;
     if(action.type==="end") doEndTurn();
     else if(action.type==="pass") doPass();
     else if(action.type==="pause") togglePause();
     else if(action.type==="revert") doRevert(action.playerIdx);
     else if(action.type==="nextRound") startNextRound();
+    else if(action.type==="claimSeat"){
+      const i=action.seatIdx;
+      if(S.players[i]){
+        S.players[i].name=action.name;
+        S.players[i].color={value:action.cv,light:action.cl,name:action.cn,bg:action.cb};
+        pushState();
+        renderTimer();
+      }
+    }
   });
 }
 
@@ -839,7 +895,26 @@ function listenForPlayerActions(){
 function renderTimer(){
   const p=S.players[S.currentIdx]; setBg(p.color);
   const shareUrl=`${location.origin}${location.pathname}?room=${roomCode}`;
-  $("share-bar-slot").innerHTML=`<div class="share-bar"><div class="sb-icon">🔗</div><div class="sb-txt"><div class="sb-lbl">รหัสเกม</div><div class="sb-code">${roomCode}</div><div class="sb-url">${shareUrl}</div></div><button class="cp-btn" id="cp-btn" onclick="copyLink('${shareUrl}')">คัดลอก</button></div>`;
+  $("share-bar-slot").innerHTML=`
+    <div class="share-bar">
+      <div class="sb-icon">🔗</div>
+      <div class="sb-txt">
+        <div class="sb-lbl">รหัสเกม</div>
+        <div class="sb-code">${roomCode}</div>
+        <div class="sb-url">${shareUrl}</div>
+      </div>
+      <button class="cp-btn" id="cp-btn" onclick="copyLink('${shareUrl}')">คัดลอก</button>
+    </div>
+    <div style="width:calc(100% - 48px);max-width:632px;margin:6px auto 0;display:flex;gap:8px;">
+      <button onclick="toggleAnnounceInGame()" id="announce-game-btn"
+        style="flex:1;padding:8px 10px;border-radius:4px;font-family:'Sarabun',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.5px;border:1px solid;${S.announceEnabled?'background:rgba(47,133,90,0.2);border-color:rgba(47,133,90,0.5);color:#68D391;':'background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1);color:rgba(255,255,255,0.3);'}">
+        📢 ขานชื่อ ${S.announceEnabled?'ON':'OFF'}
+      </button>
+      <button onclick="toggleReminderInGame()" id="reminder-game-btn"
+        style="flex:1;padding:8px 10px;border-radius:4px;font-family:'Sarabun',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.5px;border:1px solid;${S.timeReminderEnabled?'background:rgba(47,133,90,0.2);border-color:rgba(47,133,90,0.5);color:#68D391;':'background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1);color:rgba(255,255,255,0.3);'}">
+        ⏰ นับเวลา ${S.timeReminderEnabled?'ON':'OFF'}
+      </button>
+    </div>`;
   const modeLabel=S.ctrlMode==="remote"?`<b>Remote Mode</b> · กด 1× = จบเทิร์น · กด 2× เร็ว = Pass · กดค้าง = Revert`:`<b>Self Mobile Mode</b> · แต่ละคนเปิด URL บนมือถือ`;
   $("mode-bar-slot").innerHTML=`<div class="mode-bar"><div class="mode-bar-txt">${modeLabel}</div></div>`;
   $("round-badge").textContent=S.mode==="round"?`ROUND ${S.round}`:"TURN MODE";
@@ -852,15 +927,30 @@ function renderTimer(){
   $("ring-fg").setAttribute("stroke-dashoffset",CIRC-prog*CIRC);
   $("ring-fg").setAttribute("stroke",p.color.value);
   $("start-btn").classList.toggle("hidden",S.started);
-  const showCtrls=S.started&&S.ctrlMode==="remote";
+  const showCtrls=S.started&&(S.ctrlMode==="remote"||myRole==="both");
   $("ctrls").classList.toggle("hidden",!showCtrls);
   if(showCtrls){
     $("pause-btn").textContent=S.running?"⏸ หยุด":"▶ ต่อ";
     $("pass-btn").classList.toggle("hidden",S.mode!=="round");
     $("revert-btn").classList.toggle("hidden",S.prevIdx===-1||Date.now()>S.revertExpiry);
-    $("vol-hint").textContent="💡 กด 1× จบเทิร์น · กด 2× Pass · กดค้าง Revert";
+    // both role: disable end/pass when not their turn; pause always ok
+    if(myRole==="both"){
+      const isMyTurn=S.currentIdx===myPlayerIdx;
+      const endBtn=document.querySelector(".cb-end");
+      if(endBtn){ endBtn.disabled=!isMyTurn; endBtn.style.opacity=isMyTurn?"1":"0.3"; }
+      const pb=$("pass-btn");
+      if(pb&&S.mode==="round"){ pb.disabled=!isMyTurn; pb.style.opacity=isMyTurn?"1":"0.3"; }
+      $("vol-hint").textContent=`⚙️ Admin + ผู้เล่น Seat ${myPlayerIdx+1} ${isMyTurn?"· เทิร์นของคุณ":"· ไม่ใช่เทิร์นของคุณ"}`;
+    } else {
+      const endBtn=document.querySelector(".cb-end");
+      if(endBtn){ endBtn.disabled=false; endBtn.style.opacity="1"; }
+      $("vol-hint").textContent="💡 กด 1× จบเทิร์น · กด 2× Pass · กดค้าง Revert";
+    }
   } else { $("vol-hint").textContent=""; }
   renderQueue("q-host");
+  // Sync fullscreen if open
+  const fsEl=document.getElementById("screen-fullscreen");
+  if(fsEl&&!fsEl.classList.contains("hidden")) renderFs();
 }
 
 function renderQueue(elId){
@@ -1146,29 +1236,7 @@ window.joinAsSeat=async function(){
   show("screen-player"); listenMobile();
 };
 
-// ── HOST: handle claimSeat action ──────
-// (added to listenForPlayerActions)
-function listenForPlayerActionsExtended(){
-  onValue(ref(db,`rooms/${roomCode}/pendingAction`),snap=>{
-    const action=snap.val();
-    if(!action||!action.type) return;
-    set(ref(db,`rooms/${roomCode}/pendingAction`),null);
-    if(action.type==="end") doEndTurn();
-    else if(action.type==="pass") doPass();
-    else if(action.type==="pause") togglePause();
-    else if(action.type==="revert") doRevert(action.playerIdx);
-    else if(action.type==="nextRound") startNextRound();
-    else if(action.type==="claimSeat"){
-      // update player name & color
-      const i=action.seatIdx;
-      if(S.players[i]){
-        S.players[i].name=action.name;
-        S.players[i].color={value:action.cv,light:action.cl,name:action.cn,bg:action.cb};
-        pushState();
-      }
-    }
-  });
-}
+// listenForPlayerActionsExtended merged into listenForPlayerActions
 
 // ── MOBILE LISTENER (Player + Admin) ───
 function listenMobile(){
@@ -1318,6 +1386,43 @@ function renderSummary(){
   $("sum-total-reverts").textContent=totalReverts>0?`↩ Revert รวมทั้งเกม: ${totalReverts} ครั้ง`:"";
 }
 
+
+// ── FULLSCREEN MODE ────────────────────
+let fsTickInt = null;
+
+window.enterFullscreen = function(){
+  if(!S.started || S.phase !== "game") return;
+  renderFs(); document.getElementById("screen-fullscreen").classList.remove("hidden");
+};
+window.exitFullscreen = function(){
+  clearInterval(fsTickInt);
+  document.getElementById("screen-fullscreen").classList.add("hidden");
+};
+window.fsPause = function(){ togglePause(); renderFs(); };
+window.fsEnd   = function(){ exitFullscreen(); doEndTurn(); };
+window.fsPass  = function(){ exitFullscreen(); doPass(); };
+
+function renderFs(){
+  if(!S.started || S.phase !== "game") return;
+  const p = S.players[S.currentIdx];
+  const el = document.getElementById("screen-fullscreen"); if(!el) return;
+  el.style.background = p.color.bg;
+  document.getElementById("fs-name").textContent = p.name;
+  document.getElementById("fs-turn-time").textContent = fmt(p.turnTime);
+  document.getElementById("fs-status").textContent = S.running ? "กำลังเดิน..." : "หยุดชั่วคราว";
+  document.getElementById("fs-pause-btn").textContent = S.running ? "⏸ หยุด" : "▶ ต่อ";
+  document.getElementById("fs-pass-btn").classList.toggle("hidden", S.mode !== "round");
+
+  clearInterval(fsTickInt);
+  if(S.running){
+    let t = p.turnTime;
+    fsTickInt = setInterval(()=>{
+      t++; const el2 = document.getElementById("fs-turn-time");
+      if(el2) el2.textContent = fmt(t);
+    }, 1000);
+  }
+}
+
 // ── OBSERVER ───────────────────────────
 function listenObs(){
   clearAll();
@@ -1354,6 +1459,14 @@ window.confirmReset=function(){
   if(confirm("รีเซ็ตเกมและกลับหน้าแรก?")){
     clearAll(); set(ref(db,`rooms/${roomCode}`),null); showHome();
   }
+};
+window.toggleAnnounceInGame=function(){
+  S.announceEnabled=!S.announceEnabled;
+  pushState(); renderTimer();
+};
+window.toggleReminderInGame=function(){
+  S.timeReminderEnabled=!S.timeReminderEnabled;
+  pushState(); renderTimer();
 };
 window.copySetupLink=function(){
   const url=`${location.origin}${location.pathname}?room=${roomCode}`;
@@ -1403,8 +1516,7 @@ window.addEventListener("DOMContentLoaded",async()=>{
       }
     } else show("screen-home");
   } else show("screen-home");
-  // patch listenForPlayerActions to extended
-  if(isHost) listenForPlayerActionsExtended();
+  // listenForPlayerActions already handles all action types
 });
 </script>
 
@@ -1471,6 +1583,20 @@ window.addEventListener("DOMContentLoaded",async()=>{
     <div id="sum-total-reverts" style="font-size:12px;color:rgba(180,180,255,0.6);text-align:center;margin-top:12px;letter-spacing:1px;"></div>
   </div>
   <button class="sum-play-again" onclick="showHome()">🎮 เล่นใหม่</button>
+</div>
+
+
+<!-- FULLSCREEN MODE -->
+<div id="screen-fullscreen" class="hidden">
+  <div class="fs-name" id="fs-name">—</div>
+  <div class="fs-turn-time" id="fs-turn-time">00:00</div>
+  <div class="fs-status" id="fs-status">กำลังเดิน...</div>
+  <div class="fs-btns">
+    <button class="fs-btn fs-btn-pause" id="fs-pause-btn" onclick="fsPause()">⏸ หยุด</button>
+    <button class="fs-btn fs-btn-end" onclick="fsEnd()">จบเทิร์น →</button>
+    <button class="fs-btn fs-btn-pass hidden" id="fs-pass-btn" onclick="fsPass()">✕ Pass</button>
+    <button class="fs-btn fs-btn-exit" onclick="exitFullscreen()">⤡ ออก</button>
+  </div>
 </div>
 
 </body>
